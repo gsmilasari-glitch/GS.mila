@@ -37,7 +37,10 @@ const DATA=/*D*/{"topics":[{"name":"Les livres, la lecture, les habitudes (Kitap
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}},sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const sh=a=>[...a].sort(()=>Math.random()-.5);
-const say=t=>{try{speechSynthesis.cancel();t.split(/(?<=[.!?])\s+/).forEach(x=>{const u=new SpeechSynthesisUtterance(x);u.lang='fr-FR';u.rate=.85;speechSynthesis.speak(u)})}catch(e){}};
+let SID=0,SU=null;
+const say=t=>{try{const S=speechSynthesis,id=++SID,q=t.split(/(?<=[.!?])\s+/);S.cancel();
+const nx=()=>{if(id!=SID||!q.length)return;const u=SU=new SpeechSynthesisUtterance(q.shift());u.lang='fr-FR';u.rate=.85;const v=(S.getVoices()||[]).find(v=>/^fr/i.test(v.lang));if(v)u.voice=v;u.onend=u.onerror=nx;S.speak(u)};setTimeout(nx,100)}catch(e){}};
+const stopSay=()=>{SID++;try{speechSynthesis.cancel()}catch(e){}};
 const nz=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').trim();
 const lev=(a,b)=>{const m=[...Array(a.length+1)].map((_,i)=>[i,...Array(b.length).fill(0)]);for(let j=1;j<=b.length;j++)m[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return m[a.length][b.length]};
 
@@ -149,7 +152,7 @@ function vTopics(){const d=draft||{name:'',vocab:[],gaps:[]};return `<p class="m
 <button class="p" onclick="addT()">Konuyu yayınla</button><h3>Yayındaki konular</h3>`+
 (topics.length?topics.map((t,i)=>`<div class="tp"><span><b>${esc(t.name)}</b><br><small class="mut">${t.vocab.length} kelime, ${t.gaps.length} boşluk cümlesi</small></span><button onclick="if(confirm('Bu konu silinsin mi?'))delT(${i})">Sil</button></div>`).join(''):'<p class="mut">Henüz konu yok. Yukarıdan ilk konunu ekle.</p>')}
 
-const TABS=[['cards','Kartlar',vCards],['quiz','Quiz',vQuiz],['read','Okuma',vRead],['listen','Dinle ve Konuş',vListen],['oral','Sözlü',vOral],['topics','Yönetim',vTopics]];
+const TABS=[['cards','Kartlar',vCards],['quiz','Quiz',vQuiz],['read','Okuma',vRead],['listen','Dinle ve Konuş',vListen],['etre','Passé composé',vEtre],['oral','Sözlü',vOral],['tr','Çeviri',vTr],['topics','Yönetim',vTopics]];
 function go(){if(!AUTH&&!ADMIN){$('nav').innerHTML='';$('#v').innerHTML=vLogin();return}$('nav').innerHTML=TABS.filter(t=>t[0]!='topics'||ADMIN).map(t=>`<button class="${t[0]==tab?'on':''}" onclick="tab='${t[0]}';go()">${t[1]}</button>`).join('');$('#v').innerHTML=TABS.find(t=>t[0]==tab)[2]()}
 const MAIN=$('main').outerHTML;
 const PROMPT='Bu, bir Fransızca A2 ders defterinin fotoğrafı. Yalnızca fotoğrafta okuyabildiğin içerikten çalış; okunmayanı atla, uydurma. Yalnızca JSON döndür: {"name":"konu adı","vocab":[{"fr":"","tr":""}],"gaps":[{"q":"içinde ___ bulunan Fransızca cümle","a":"boşluğa gelen kelime"}]}. vocab: defterdeki kelimeler ve Türkçe karşılıkları (karşılık yazılı değilse Türkçesini sen yaz). gaps: defterdeki cümle veya örneklerden en fazla 8 boşluk doldurma; cevap tek kelime ya da kısa ifade olsun.';
@@ -178,7 +181,8 @@ const ORAL=[
 {t:'8. Dimanche prochain',i:[{q:'Parle de dimanche prochain. Qu’est-ce que tu vas faire ? Avec qui ? Où est-ce que tu vas aller ?',a:'Dimanche prochain, je vais me réveiller vers neuf heures. Je vais me lever, me laver et m’habiller. Après le petit-déjeuner, je vais aller au parc avec mes amis. Nous allons faire du vélo et jouer au basket. À midi, nous allons déjeuner dans un petit restaurant. L’après-midi, je vais me promener avec ma famille et nous allons rendre visite à mes grands-parents. Le soir, je vais me détendre à la maison et regarder un film. Je vais me coucher vers onze heures.'}]},
 {t:'9. Les livres',i:[{q:'Aimez-vous lire ? Quand lisez-vous ? Quel est votre type de livre, de journal ou de magazine préféré ?',a:'J’aime bien lire, surtout pendant mon temps libre. Je lis souvent le soir avant de dormir ou le week-end quand j’ai du temps. Mon type de livre préféré est le roman d’aventures parce que j’aime les histoires intéressantes et pleines d’action. J’aime aussi les romans policiers parce que j’adore découvrir le coupable à la fin. Je ne lis pas souvent de journaux, mais je regarde parfois les informations sur Internet. De temps en temps, je lis aussi des magazines sur le cinéma, la musique ou les voyages. Pour moi, lire est une bonne activité pour se détendre et apprendre de nouvelles choses.'}]}];
 let os=ld('oral',{}),ON=null,OK=0,OSH=true,OR=null,OREC=null,OT='';
-const tk=s=>s.toLowerCase().replace(/\(e\)/g,'').replace(/œ/g,'oe').replace(/[’']/g,' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]+/g,' ').split(/\s+/).filter(Boolean);
+const NUMS={0:'zero',1:'un',2:'deux',3:'trois',4:'quatre',5:'cinq',6:'six',7:'sept',8:'huit',9:'neuf',10:'dix',11:'onze',12:'douze',13:'treize',14:'quatorze',15:'quinze',16:'seize',17:'dix sept',18:'dix huit',19:'dix neuf',20:'vingt'};
+const tk=s=>s.toLowerCase().replace(/\(e\)/g,'').replace(/œ/g,'oe').replace(/[’']/g,' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ee\b/g,'e').replace(/[^a-z0-9 ]+/g,' ').replace(/\b\d+\b/g,m=>NUMS[m]||m).split(/\s+/).filter(Boolean);
 function score(model,said){const A=tk(model),B=tk(said),n=A.length,m=B.length,d=[...Array(n+1)].map(()=>Array(m+1).fill(0));
 for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)d[i][j]=A[i]==B[j]?d[i+1][j+1]+1:Math.max(d[i+1][j],d[i][j+1]);
 const hit=Array(n).fill(0);let i=0,j=0;while(i<n&&j<m){if(A[i]==B[j]){hit[i]=1;i++;j++}else if(d[i+1][j]>=d[i][j+1])i++;else j++}
@@ -190,6 +194,167 @@ r.onresult=e=>{OT='';for(const x of e.results)OT+=x[0].transcript+' '};
 r.onerror=()=>{OR={err:'Mikrofon izni verilmedi veya ses alınamadı.'}};
 r.onend=()=>{OREC=null;if(!OR){if(OT.trim()){OR=score(ORAL[ON].i[OK].a,OT);const key=ON+'-'+OK,b=(os[key]||{}).b||0;os[key]={l:OR.p,b:Math.max(b,OR.p)};sv('oral',os)}else OR={err:'Ses duyulmadı, tekrar dene.'}}go()};
 r.start();go()}
+const EA=`aller|gitmek|e|je suis allé(e)
+venir|gelmek|e|je suis venu(e)
+arriver|varmak|e|je suis arrivé(e)
+partir|yola çıkmak|e|je suis parti(e)
+sortir|dışarı çıkmak|e|je suis sorti(e)
+entrer|girmek|e|je suis entré(e)
+rentrer|eve dönmek|e|je suis rentré(e)
+retourner|geri dönmek|e|je suis retourné(e)
+revenir|geri gelmek|e|je suis revenu(e)
+monter|çıkmak, binmek|e|je suis monté(e)
+descendre|inmek|e|je suis descendu(e)
+rester|kalmak|e|je suis resté(e)
+tomber|düşmek|e|je suis tombé(e)
+naître|doğmak|e|je suis né(e)
+mourir|ölmek|e|je suis mort(e)
+devenir|olmak|e|je suis devenu(e)
+se réveiller|uyanmak|r|je me suis réveillé(e)
+se lever|kalkmak|r|je me suis levé(e)
+se laver|yıkanmak|r|je me suis lavé(e)
+s’habiller|giyinmek|r|je me suis habillé(e)
+se promener|gezmek|r|je me suis promené(e)
+se coucher|yatmak|r|je me suis couché(e)
+s’amuser|eğlenmek|r|je me suis amusé(e)
+se reposer|dinlenmek|r|je me suis reposé(e)
+se détendre|rahatlamak|r|je me suis détendu(e)
+manger|yemek|a|j’ai mangé
+prendre|almak|a|j’ai pris
+voyager|seyahat etmek|a|j’ai voyagé
+oublier|unutmak|a|j’ai oublié
+retrouver|bulmak, karşılaşmak|a|j’ai retrouvé
+passer (une journée)|geçirmek|a|j’ai passé
+regarder|bakmak|a|j’ai regardé
+jouer|oynamak|a|j’ai joué
+nager|yüzmek|a|j’ai nagé
+acheter|satın almak|a|j’ai acheté
+finir|bitirmek|a|j’ai fini
+faire|yapmak|a|j’ai fait
+voir|görmek|a|j’ai vu
+avoir|sahip olmak|a|j’ai eu
+être|olmak|a|j’ai été
+parler|konuşmak|a|j’ai parlé
+visiter|gezmek (yer)|a|j’ai visité
+déjeuner|öğle yemeği yemek|a|j’ai déjeuné
+dîner|akşam yemeği yemek|a|j’ai dîné
+écouter|dinlemek|a|j’ai écouté
+travailler|çalışmak|a|j’ai travaillé
+lire|okumak|a|j’ai lu
+dormir|uyumak|a|j’ai dormi`.split('\n').map(l=>{const[v,tr,a,ex]=l.split('|');return{v,tr,a,ex}});
+const EH={e:'Hareket ya da durum değişikliği fiili: être ile kurulur.',r:'Dönüşlü fiil (se ...): her zaman être ile kurulur.',a:'Bu fiil avoir ile kurulur.'};
+let EQ=null,ei=0,es=0,ea=null,ew=[];
+function estart(list){EQ=sh(list||EA).slice(0,list?99:10);ei=0;es=0;ea=null;ew=[];go()}
+function eans(x){const q=EQ[ei];ea=x;if((q.a=='a')==(x=='avoir'))es++;else ew.push(q);go()}
+const TR=[
+['Benim adım Lucas ve 11 yaşındayım.','Je m’appelle Lucas et j’ai onze ans.'],
+['Fransızım ve Lyon’da yaşıyorum.','Je suis français et j’habite à Lyon.'],
+['Ailemle birlikte yaşıyorum.','J’habite avec ma famille.'],
+['En sevdiğim dersler Fransızca ve spor.','Mes matières préférées sont le français et le sport.'],
+['Boş zamanımda müzik dinlemeyi severim.','Pendant mon temps libre, j’aime écouter de la musique.'],
+['Biraz İngilizce konuşuyorum.','Je parle un peu anglais.'],
+['İleride gazeteci olmak istiyorum.','Plus tard, je voudrais devenir journaliste.'],
+['Tatilde sık sık ailemle denize giderim.','Pendant les vacances, je vais souvent à la mer avec ma famille.'],
+['Arabayla yola çıkıyoruz.','Nous partons en voiture.'],
+['Akşamları ailemle dinleniyorum.','Le soir, je me détends avec ma famille.'],
+['Hafta sonu dokuza doğru uyanıyorum.','Le week-end, je me réveille vers neuf heures.'],
+['Öğleden sonra arkadaşlarımla buluşuyorum.','L’après-midi, je retrouve mes amis.'],
+['Bazen spor yapıyorum ya da sinemaya gidiyorum.','Quelquefois, je fais du sport ou je vais au cinéma.'],
+['Saat on bir civarı yatıyorum.','Je me couche vers onze heures.'],
+['Geçen cumartesi arkadaşlarımla sinemaya gittik.','Samedi dernier, nous sommes allés au cinéma avec mes amis.'],
+['Bir pizza yedik.','Nous avons mangé une pizza.'],
+['Çok eğlendim.','Je me suis beaucoup amusé(e).'],
+['Geçen yaz ailemle Antalya’ya gittim.','L’été dernier, je suis allé(e) à Antalya avec ma famille.'],
+['Çantamı bir kafede unuttum.','J’ai oublié mon sac dans un café.'],
+['Garson çantamı buldu.','Le serveur a retrouvé mon sac.'],
+['Çok korktum ama her şey iyi bitti.','J’ai eu très peur, mais tout s’est bien terminé.'],
+['Gelecek pazar dokuza doğru uyanacağım.','Dimanche prochain, je vais me réveiller vers neuf heures.'],
+['Arkadaşlarımla parkta bisiklete bineceğiz.','Nous allons faire du vélo au parc avec mes amis.'],
+['Akşam evde film izleyeceğim.','Le soir, je vais regarder un film à la maison.'],
+['Büyükanne ve büyükbabamı ziyaret edeceğiz.','Nous allons rendre visite à mes grands-parents.'],
+['Cumartesi öğleden sonra boş musun?','Tu es libre samedi après-midi ?'],
+['Parka gidebiliriz. Ne dersin?','On peut aller au parc. Ça te dit ?'],
+['Ben oraya bisikletle gitmeyi tercih ederim.','Je préfère y aller à vélo.'],
+['Belediyenin önünde buluşalım mı?','On se retrouve devant la mairie ?'],
+['Yağmur yağarsa müzeye gidebiliriz.','S’il pleut, on peut aller au musée.'],
+['Okumayı severim, özellikle akşamları.','J’aime lire, surtout le soir.'],
+['En sevdiğim kitap türü macera romanıdır.','Mon type de livre préféré est le roman d’aventures.'],
+['Bazen internette haberlere bakarım.','Je regarde parfois les informations sur Internet.']];
+const TL={p:'Şimdiki zaman',g:'Geçmiş zaman (passé composé)',f:'Gelecek zaman (futur proche)'};
+TR.forEach((x,i)=>{x[2]=i>=14&&i<=20?'g':i>=21&&i<=24?'f':'p'});
+TR.push(
+['Dün akşam arkadaşlarımla futbol oynadım.','Hier soir, j’ai joué au football avec mes amis.','g'],
+['Geçen hafta sonu büyükannemi ziyaret ettim.','Le week-end dernier, j’ai rendu visite à ma grand-mère.','g'],
+['Erken kalktım ve kahvaltı yaptım.','Je me suis levé(e) tôt et j’ai pris mon petit-déjeuner.','g'],
+['Akşam eve döndüm ve yattım.','Le soir, je suis rentré(e) à la maison et je me suis couché(e).','g'],
+['Geçen yaz denizde yüzdüm.','L’été dernier, j’ai nagé dans la mer.','g'],
+['Dün bir kitap okudum.','Hier, j’ai lu un livre.','g'],
+['Yarın okula gideceğim.','Demain, je vais aller à l’école.','f'],
+['Gelecek yaz Paris’i ziyaret edeceğiz.','L’été prochain, nous allons visiter Paris.','f'],
+['Bu akşam ödevimi yapacağım.','Ce soir, je vais faire mes devoirs.','f'],
+['Bu hafta sonu arkadaşlarımla sinemaya gideceğim.','Ce week-end, je vais aller au cinéma avec mes amis.','f'],
+['Yarın erken kalkacağım.','Demain, je vais me lever tôt.','f'],
+['Gelecek hafta müzeyi ziyaret edeceğiz.','La semaine prochaine, nous allons visiter le musée.','f'],
+['Her sabah saat yedide kalkıyorum.','Chaque matin, je me lève à sept heures.','p'],
+['Okula otobüsle gidiyorum.','Je vais à l’école en bus.','p'],
+['Öğle yemeğini okulda yiyorum.','Je déjeune à l’école.','p'],
+['Futbol oynamayı seviyorum.','J’aime jouer au football.','p']);
+let TF='h',TQ=sh(TR),TI=0,TT=null,TRC=null,TA=[],TSH=false;
+function tset(f){TF=f;TQ=sh(f=='h'?TR:TR.filter(x=>x[2]==f));TI=0;TT=null;TA=[];TSH=false;go()}
+const tcur=()=>TQ[TI%TQ.length];
+function sayT(){say(tcur()[1].replace(/\(e\)/g,''))}
+function trec(){const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(TRC){TRC.stop();return}
+if(!R){TT={err:'Bu tarayıcı konuşma tanımayı desteklemiyor. Chrome veya Safari dene.'};return go()}
+const r=TRC=new R();r.lang='fr-FR';r.continuous=true;let said='';TT=null;
+r.onresult=e=>{said='';for(const x of e.results)said+=x[0].transcript+' '};
+r.onerror=()=>{TT={err:'Mikrofon izni verilmedi veya ses alınamadı.'}};
+r.onend=()=>{TRC=null;if(!TT){if(said.trim()){TT={...score(tcur()[1],said),said};TA.push(TT.p)}else TT={err:'Ses duyulmadı, tekrar dene.'}}go()};
+r.start();go()}
+function vTr(){const q=tcur(),r=TT,avg=TA.length?Math.round(TA.reduce((a,b)=>a+b,0)/TA.length):null;
+let b=`<div class="row">${[['h','Hepsi'],['p','Şimdiki'],['g','Geçmiş'],['f','Gelecek']].map(x=>`<button class="${TF==x[0]?'p':''}" onclick="tset('${x[0]}')">${x[1]}</button>`).join('')}</div><p class="mut"><b>${TL[q[2]]}</b><br>Türkçe cümleyi Fransızca söyle. ${TI%TQ.length+1}/${TQ.length}${avg!=null?' · oturum ortalaması %'+avg:''}</p><div class="fc st"><div class="big" style="font-size:1.3rem">${esc(q[0])}</div></div><div class="row"><button class="${TRC?'':'p'}" onclick="trec()">${TRC?'Bitir':'Fransızca söyle'}</button><button onclick="TSH=!TSH;go()">${TSH?'Cevabı gizle':'Cevabı göster'}</button><button onclick="sayT()">Cevabı dinle</button><button onclick="stopSay()">Sesi durdur</button></div>`;
+if(TRC)b+='<div class="fb">Dinleniyor... Bitirince "Bitir"e bas.</div>';
+if(TSH&&!r)b+=`<div class="fc st" style="text-align:left">${esc(q[1])}</div>`;
+if(r&&r.err)b+=`<div class="fb">${esc(r.err)}</div>`;
+else if(r)b+=`<div class="fb"><b>Doğruluk: %${r.p}</b> · ${r.p>=80?'Doğru.':r.p>=50?'Yakın, bir daha dene.':'Tekrar dene; önce cevabı dinle.'}<br>Söylediğin: ${esc(r.said)}</div><div class="fc st" style="text-align:left">${r.words.map(w=>w[1]?esc(w[0]):`<b style="color:var(--bad)">${esc(w[0])}</b>`).join(' ')}</div><p class="mut">Kırmızı kelimeler söylenmedi ya da farklı anlaşıldı. Aynı anlama gelen başka bir cümle kurduysan puan düşük çıkabilir; bu bir çalışma göstergesidir.</p>`;
+return b+`<div class="row"><button class="p" onclick="TI++;TT=null;TSH=false;go()">Sonraki cümle</button><button onclick="tset(TF)">Karıştır</button></div>`}
+let PC=true;
+let PX=false,XQ=null,xi=0,xs=0,xa=null,xw=[];
+const inf=v=>v.replace(/^(se |s’)/,'').replace(/ \(.*\)$/,'');
+function xstart(list){XQ=sh(list||EA).slice(0,list?99:10).map(q=>{const pt=q.ex.split(' ').pop().replace(/\(e\)$/,''),w=q.a=='e'?['j’ai '+pt,'je suis '+inf(q.v)]:q.a=='r'?['je m’ai '+pt,'je me suis '+inf(q.v)]:['je suis '+pt,'j’ai '+inf(q.v)];return{q,o:sh([q.ex,...w])}});xi=0;xs=0;xa=null;xw=[];go()}
+function xpick(i){const it=XQ[xi];xa=i;if(it.o[i]==it.q.ex)xs++;else xw.push(it.q);go()}
+function vX(){if(!XQ)return `<p class="mut">Bir fiil gelir. Passé composé hali doğru olanı seç.</p><button class="p" onclick="xstart()">10 soruluğa başla</button>`;
+if(xi>=XQ.length)return `<div class="fc st"><div class="big">${xs}/${XQ.length}</div></div>`+(xw.length?`<p>Karıştırdıkların: ${xw.map(q=>esc(q.v)+' → '+esc(q.ex)).join('; ')}</p><button class="p" onclick="xstart(xw)">Yanlışları tekrar çöz</button> `:'<p>Hiç hata yapmadın.</p>')+`<button onclick="XQ=null;go()">Başa dön</button>`;
+const it=XQ[xi],d=xa!=null;
+return `<p class="mut">${xi+1}/${XQ.length}</p><div class="fc st"><div class="big">${esc(it.q.v)}</div><small>${esc(it.q.tr)}</small></div>`+it.o.map((o,i)=>`<button class="opt ${d?(o==it.q.ex?'ok':i==xa?'bad':''):''}" ${d?'disabled':''} onclick="xpick(${i})">${esc(o)}</button>`).join('')+(d?`<div class="fb">${it.o[xa]==it.q.ex?'Doğru.':'Yanlış. Doğrusu: <b>'+esc(it.q.ex)+'</b>'}<br>${EH[it.q.a]}</div><button class="p" onclick="xi++;xa=null;go()">Sonraki</button>`:'')}
+function vEtre(){const tg=`<div class="row"><button class="${PC?'p':''}" onclick="PC=true;PX=false;go()">Konu anlatımı</button><button class="${!PC&&!PX?'p':''}" onclick="PC=false;PX=false;go()">Être mi avoir mı?</button><button class="${!PC&&PX?'p':''}" onclick="PC=false;PX=true;go()">Doğru olanı seç</button></div>`;return tg+(PC?vKonu():PX?vX():vEtre2())}
+function vKonu(){return `<h3>Passé composé ne zaman kullanılır?</h3><p>Geçmişte bitmiş olayları anlatırken: <b>Samedi dernier, je suis allé(e) au cinéma.</b></p>
+<h3>Yapısı</h3><div class="fb"><b>özne + avoir ya da être (şimdiki zaman) + participe passé</b><br>j’ai mangé · je suis allé(e) · je me suis levé(e)</div>
+<h3>Participe passé nasıl yapılır?</h3><p>-er → <b>-é</b>: manger → mangé, aller → allé<br>-ir → <b>-i</b>: finir → fini, dormir → dormi, sortir → sorti<br>-re → <b>-u</b>: attendre → attendu, descendre → descendu<br>Düzensizler: avoir → <b>eu</b>, être → <b>été</b>, faire → <b>fait</b>, prendre → <b>pris</b>, voir → <b>vu</b>, lire → <b>lu</b>, vouloir → <b>voulu</b>, pouvoir → <b>pu</b></p>
+<h3>Avoir ile</h3><p>j’ai · tu as · il/elle a · nous avons · vous avez · ils/elles ont + participe<br><b>Nous avons mangé une pizza.</b> Participe değişmez.</p>
+<h3>Être ile</h3><p>je suis · tu es · il/elle est · nous sommes · vous êtes · ils/elles sont + participe<br><b>Nous sommes allés au cinéma.</b> Participe özneye uyar: kadınsa <b>-e</b> (elle est allée), çoğulsa <b>-s</b> (nous sommes allés). Metinlerdeki “(e)” bu yüzden.</p>
+<h3>Hangi fiil être ile?</h3><div class="fb">1) Hareket ve durum değişikliği: aller, venir, arriver, partir, sortir, entrer, rentrer, retourner, revenir, monter, descendre, rester, tomber, naître, mourir, devenir<br>2) Bütün dönüşlü fiiller: je me suis réveillé(e), je me suis levé(e), je me suis couché(e), je me suis amusé(e)<br>3) Geri kalan fiillerin çoğu avoir ile.</div>
+<h3>Olumsuz</h3><p>ne + yardımcı fiil + pas + participe:<br>je <b>n’</b>ai <b>pas</b> mangé · je <b>ne</b> suis <b>pas</b> allé(e) · je <b>ne</b> me suis <b>pas</b> levé(e)</p>
+<h3>Zaman ifadeleri</h3><p>hier · samedi dernier · l’été dernier · le premier jour · ensuite · après · le soir · finalement · heureusement</p>
+<h3>Dikkat: sık hata</h3><p>✗ j’ai allé → ✓ <b>je suis allé(e)</b><br>✗ je suis mangé → ✓ <b>j’ai mangé</b></p><button class="p" onclick="PC=false;go()">Alıştırmaya geç</button>`}
+function vEtre2(){if(!EQ)return `<p class="mut">Fiile bak, yardımcı fiili seç: être mi avoir mı?</p><div class="fb"><b>Kural:</b> gitme, gelme, kalma, doğma, ölme gibi hareket ve durum değişikliği fiilleri ile bütün dönüşlü fiiller (se ...) <b>être</b> ile kurulur. Geri kalan fiillerin çoğu <b>avoir</b> ile kurulur.</div><button class="p" onclick="estart()">10 soruluğa başla</button>`;
+if(ei>=EQ.length)return `<div class="fc st"><div class="big">${es}/${EQ.length}</div></div>`+(ew.length?`<p>Karıştırdıkların: ${ew.map(q=>esc(q.v)+' → '+esc(q.ex)).join('; ')}</p><button class="p" onclick="estart(ew)">Yanlışları tekrar çöz</button> `:'<p>Hiç hata yapmadın.</p>')+`<button onclick="EQ=null;go()">Başa dön</button>`;
+const q=EQ[ei],d=ea!=null,ok=d&&((q.a=='a')==(ea=='avoir')),st='style="width:auto;flex:1;text-align:center"';
+return `<p class="mut">${ei+1}/${EQ.length}</p><div class="fc st"><div class="big">${esc(q.v)}</div><small>${esc(q.tr)}</small></div><div class="row"><button ${st} class="opt ${d?(q.a!='a'?'ok':ea=='être'?'bad':''):''}" ${d?'disabled':''} onclick="eans('être')">être</button><button ${st} class="opt ${d?(q.a=='a'?'ok':ea=='avoir'?'bad':''):''}" ${d?'disabled':''} onclick="eans('avoir')">avoir</button></div>`+(d?`<div class="fb">${ok?'Doğru.':'Yanlış.'} <b>${esc(q.ex)}</b><br>${EH[q.a]}</div><button class="p" onclick="ei++;ea=null;go()">Sonraki</button>`:'')}
+let OTR=false;
+const ORTR=[
+[['Tatillerde ne yaparsın?',['Tatillerde sık sık ailemle denize giderim.','Arabayla yola çıkarız.','Yüzerim, gezinirim ve arkadaşlarımla oynarım.','Bazen yeni bir şehri ziyaret ederiz.','Fotoğraf çekmeyi ve yeni yerler keşfetmeyi çok severim.','Akşamları ailemle dinlenirim.']]],
+[['İdeal tatilini hayal et. Nereye gidiyorsun? Kiminle? Nasıl? Ne yapıyorsun?',['İdeal tatilim için arkadaşlarımla Antalya’ya giderim.','Denize yakın otele gideriz.','Sabahları yüzerim ve dalış yaparım.','Öğleden sonra gezeriz ve fotoğraf çekeriz.','Akşamları restoranda yemek yeriz.','Deniz kenarındaki tatilleri çok severim!']]],
+[['Kendini ayrıntılı tanıt (60-80 kelime): ad, yaş, uyruk, şehir, aile, okul, sevilen dersler, karakter, zevkler, boş zaman, spor, diller, gelecek planı.',['Merhaba!','Adım Lucas Martin ve 11 yaşındayım.','Fransızım ve annem babam ve kız kardeşimle Lyon’da yaşıyorum.','Cinquième sınıfındayım (Fransa’da ortaokulun 2. yılı).','Ortaokulda en sevdiğim dersler Fransızca ve spor.','Oldukça sportif, girişken ve meraklıyım.','Boş zamanlarımda futbol oynamayı, müzik dinlemeyi ve arkadaşlarımla dışarı çıkmayı severim.','Fransızca ve biraz İngilizce konuşurum.','İleride gazeteci olmak istiyorum.']]],
+[['Tatilde yaşadığın kötü bir deneyimi passé composé ile anlat. Nereye gittin? Kiminle? Nasıl seyahat ettin? Ne sorun yaşadın? Ne yaptın? Nasıl tepki verdin? Nasıl bitti?',['Geçen yaz ailemle Antalya’ya gittim.','Arabayla seyahat ettik.','İlk gün plaja gittik ama çantamı bir kafede unuttum.','Çok endişeliydim çünkü telefonum çantanın içindeydi.','Kafeye geri döndük ve neyse ki garson çantamı bulmuştu.','Çok korktum ama sonunda her şey iyi bitti!']]],
+[['Cumartesi öğleden sonra boş musun?',['Evet, saat 14’ten itibaren boşum.']],
+['Rives parkına gidebiliriz. Ne dersin?',['Evet, ama oraya bisikletle gitmeyi tercih ederim.']],
+['Tamam. Saat 14.30’da belediyenin önünde buluşalım mı?',['Çok iyi.','Yiyecek bir şey getirelim mi?']],
+['Ben sandviç hazırlayabilirim. Sen içecek getirebilir misin?',['Evet, sorun değil.','Peki yağmur yağarsa?']],
+['O zaman müzeye gidebiliriz.',['Harika!','Cumartesi görüşürüz!']]],
+[['Hafta sonu alışkanlıklarını anlat. Saat kaçta uyanırsın? Nasıl hazırlanırsın? Genelde ne yaparsın?',['Hafta sonu okula gitmediğim için dokuz civarı uyanırım.','Acele etmeden kalkarım, yıkanırım ve giyinirim.','Sonra ailemle kahvaltı ederim.','Sabahları biraz dinlenirim ve video izlerim.','Öğleden sonra arkadaşlarımla buluşurum ve mahallede yürürüz.','Bazen spor yaparım ya da sinemaya giderim.','Akşamları ailemle akşam yemeği yerim, sonra on bir civarı yatarım.','Hafta sonunu çok severim çünkü dinlenebilirim!']]],
+[['Geçen cumartesini anlat. Saat kaçta kalktın? Ne yaptın? Kiminle? Eğlendin mi?',['Geçen cumartesi dokuz civarı uyandım ve birkaç dakika sonra kalktım.','Yıkandım ve giyindim.','Sonra ailemle kahvaltı ettim.','Öğleden sonra arkadaşlarımla dışarı çıktım.','Sinemaya gittik ve pizza yedik.','Sinemadan sonra mahallede yürüdük.','Akşam eve döndüm ve on bir civarı yattım.','Çok eğlendim ve çok güzel bir gün geçirdim!']]],
+[['Gelecek pazarı anlat. Ne yapacaksın? Kiminle? Nereye gideceksin?',['Gelecek pazar dokuz civarı uyanacağım.','Kalkacağım, yıkanacağım ve giyineceğim.','Kahvaltıdan sonra arkadaşlarımla parka gideceğim.','Bisiklete binecek ve basketbol oynayacağız.','Öğlen küçük bir restoranda yemek yiyeceğiz.','Öğleden sonra ailemle yürüyüşe çıkacağım ve büyükanne büyükbabamı ziyaret edeceğiz.','Akşam evde dinlenecek ve film izleyeceğim.','On bir civarı yatacağım.']]],
+[['Okumayı sever misiniz? Ne zaman okursunuz? En sevdiğiniz kitap, gazete ya da dergi türü nedir?',['Okumayı severim, özellikle boş zamanlarımda.','Genellikle akşamları yatmadan önce ya da vaktim olduğunda hafta sonu okurum.','En sevdiğim kitap türü macera romanıdır çünkü ilginç ve aksiyon dolu hikâyeleri severim.','Polisiye romanları da severim çünkü sonunda suçluları keşfetmeyi çok severim.','Sık sık gazete okumam ama bazen internette haberlere bakarım.','Ara sıra sinema, müzik ya da seyahat hakkında dergiler de okurum.','Bana göre okumak, dinlenmek ve yeni şeyler öğrenmek için güzel bir etkinliktir.']]]];
 let OM=false,OS=[],OP=[],OW=0,OHN='';
 const sents=s=>s.split(/(?<=[.!?])\s+/);
 function ostart(){OM=true;OP=[];OW=0;OHN='';OS=sh(ORAL[ON].i.flatMap(x=>sents(x.a)).map((t,k)=>({t,k})));go()}
@@ -205,7 +370,8 @@ if(ON!=null&&OM)return vOrder();
 if(ON==null){const all=ORAL.flatMap((s,a)=>s.i.map((_,b)=>os[a+'-'+b])).filter(Boolean),avg=all.length?Math.round(all.reduce((t,x)=>t+x.l,0)/all.length):null;
 return `<p class="mut">Hocanın konuları. Konu seç, soruyu dinle, cevabı sesli oku; söylediklerin metinle karşılaştırılır.</p>`+(avg!=null?`<div class="fb">Genel doğruluk (son denemeler): %${avg}</div>`:'')+ORAL.map((s,a)=>{const x=s.i.map((_,b)=>os[a+'-'+b]).filter(Boolean);return `<button class="opt" onclick="ON=${a};OK=0;OR=null;go()">${esc(s.t)}${x.length?` <small class="mut">· son %${Math.round(x.reduce((t,y)=>t+y.l,0)/x.length)}</small>`:''}</button>`}).join('')}
 const s=ORAL[ON],it=s.i[OK],r=OR,sc=os[ON+'-'+OK];
-let b=`<button onclick="ON=null;OR=null;go()">Konulara dön</button><h3>${esc(s.t)}</h3><p class="mut">${OK+1}/${s.i.length}</p><div class="fc st"><div class="big" style="font-size:1.2rem">${esc(it.q)}</div></div><div class="row"><button onclick="say(ORAL[ON].i[OK].q.replace(/\\(e\\)/g,''))">Soruyu dinle</button><button onclick="say(ORAL[ON].i[OK].a.replace(/\\(e\\)/g,''))">Cevabı dinle</button><button class="${OREC?'':'p'}" onclick="orec()">${OREC?'Bitir':'Cevabı oku'}</button><button onclick="OSH=!OSH;go()">${OSH?'Metni gizle':'Metni göster'}</button><button onclick="ostart()">Cümleleri sırala</button></div>`;
+let b=`<button onclick="ON=null;OR=null;go()">Konulara dön</button><h3>${esc(s.t)}</h3><p class="mut">${OK+1}/${s.i.length}</p><div class="fc st"><div class="big" style="font-size:1.2rem">${esc(it.q)}</div></div><div class="row"><button onclick="say(ORAL[ON].i[OK].q.replace(/\\(e\\)/g,''))">Soruyu dinle</button><button onclick="say(ORAL[ON].i[OK].a.replace(/\\(e\\)/g,''))">Cevabı dinle</button><button onclick="stopSay()">Sesi durdur</button><button class="${OREC?'':'p'}" onclick="orec()">${OREC?'Bitir':'Cevabı oku'}</button><button onclick="OSH=!OSH;go()">${OSH?'Metni gizle':'Metni göster'}</button><button onclick="ostart()">Cümleleri sırala</button><button onclick="OTR=!OTR;go()">${OTR?'Türkçeyi gizle':'Türkçesi'}</button></div>`;
+if(OTR){const t=ORTR[ON][OK],ss=sents(it.a);b+=`<div class="fc st" style="text-align:left"><p class="mut" style="margin-top:0">${esc(t[0])}</p>${ss.map((x,k)=>`<p style="margin:8px 0"><b>${esc(x)}</b><br><span class="mut">${esc(t[1][k]||'')}</span></p>`).join('')}</div>`}
 if(OREC)b+='<div class="fb">Dinleniyor... Bitirince "Bitir"e bas.</div>';
 if(OSH&&!r)b+=`<div class="fc st" style="text-align:left">${esc(it.a)}</div>`;
 if(r&&r.err)b+=`<div class="fb">${esc(r.err)}</div>`;
