@@ -37,7 +37,7 @@ const DATA=/*D*/{"topics":[{"name":"Les livres, la lecture, les habitudes (Kitap
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}},sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const sh=a=>[...a].sort(()=>Math.random()-.5);
-const say=t=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='fr-FR';u.rate=.85;speechSynthesis.speak(u)}catch(e){}};
+const say=t=>{try{speechSynthesis.cancel();t.split(/(?<=[.!?])\s+/).forEach(x=>{const u=new SpeechSynthesisUtterance(x);u.lang='fr-FR';u.rate=.85;speechSynthesis.speak(u)})}catch(e){}};
 const nz=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').trim();
 const lev=(a,b)=>{const m=[...Array(a.length+1)].map((_,i)=>[i,...Array(b.length).fill(0)]);for(let j=1;j<=b.length;j++)m[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return m[a.length][b.length]};
 
@@ -190,11 +190,22 @@ r.onresult=e=>{OT='';for(const x of e.results)OT+=x[0].transcript+' '};
 r.onerror=()=>{OR={err:'Mikrofon izni verilmedi veya ses alınamadı.'}};
 r.onend=()=>{OREC=null;if(!OR){if(OT.trim()){OR=score(ORAL[ON].i[OK].a,OT);const key=ON+'-'+OK,b=(os[key]||{}).b||0;os[key]={l:OR.p,b:Math.max(b,OR.p)};sv('oral',os)}else OR={err:'Ses duyulmadı, tekrar dene.'}}go()};
 r.start();go()}
+let OM=false,OS=[],OP=[],OW=0,OHN='';
+const sents=s=>s.split(/(?<=[.!?])\s+/);
+function ostart(){OM=true;OP=[];OW=0;OHN='';OS=sh(ORAL[ON].i.flatMap(x=>sents(x.a)).map((t,k)=>({t,k})));go()}
+function opick(k){const n=OP.length;if(k==n){OP.push(OS.splice(OS.findIndex(x=>x.k==k),1)[0]);OHN='';say(OP[n].t.replace(/\(e\)/g,''))}else{OW++;OHN='Bu cümle henüz gelmez, başka bir cümle dene.'}go()}
+function ohint(){const all=ORAL[ON].i.flatMap(x=>sents(x.a)),n=OP.length;if(n<all.length)OHN='İpucu: '+all[n].split(' ').slice(0,3).join(' ')+' ...';go()}
+function vOrder(){const s=ORAL[ON],tot=OS.length+OP.length,done=!OS.length;
+return `<button onclick="OM=false;go()">Konuya dön</button><h3>${esc(s.t)}: sırala</h3><p class="mut">Sıradaki cümleyi seç. Doğruysa yerine geçer ve sesli okunur.</p>`+
+(OP.length?`<div class="fc st" style="text-align:left">${OP.map(x=>esc(x.t)).join(' ')}</div>`:'')+
+(done?`<div class="fb"><b>Bitti.</b> ${OW?OW+' yanlış seçim yaptın.':'Hiç hata yapmadın.'}</div><div class="row"><button class="p" onclick="ostart()">Tekrar</button></div>`:
+(OHN?`<div class="fb">${esc(OHN)}</div>`:'')+OS.map(x=>`<button class="opt" onclick="opick(${x.k})">${esc(x.t)}</button>`).join('')+`<div class="row"><button onclick="ohint()">İpucu</button><button onclick="ostart()">Karıştır</button></div><p class="mut">${OP.length}/${tot} · yanlış seçim: ${OW}</p>`)}
 function vOral(){
+if(ON!=null&&OM)return vOrder();
 if(ON==null){const all=ORAL.flatMap((s,a)=>s.i.map((_,b)=>os[a+'-'+b])).filter(Boolean),avg=all.length?Math.round(all.reduce((t,x)=>t+x.l,0)/all.length):null;
 return `<p class="mut">Hocanın konuları. Konu seç, soruyu dinle, cevabı sesli oku; söylediklerin metinle karşılaştırılır.</p>`+(avg!=null?`<div class="fb">Genel doğruluk (son denemeler): %${avg}</div>`:'')+ORAL.map((s,a)=>{const x=s.i.map((_,b)=>os[a+'-'+b]).filter(Boolean);return `<button class="opt" onclick="ON=${a};OK=0;OR=null;go()">${esc(s.t)}${x.length?` <small class="mut">· son %${Math.round(x.reduce((t,y)=>t+y.l,0)/x.length)}</small>`:''}</button>`}).join('')}
 const s=ORAL[ON],it=s.i[OK],r=OR,sc=os[ON+'-'+OK];
-let b=`<button onclick="ON=null;OR=null;go()">Konulara dön</button><h3>${esc(s.t)}</h3><p class="mut">${OK+1}/${s.i.length}</p><div class="fc st"><div class="big" style="font-size:1.2rem">${esc(it.q)}</div></div><div class="row"><button onclick="say(ORAL[ON].i[OK].q.replace(/\\(e\\)/g,''))">Soruyu dinle</button><button class="${OREC?'':'p'}" onclick="orec()">${OREC?'Bitir':'Cevabı oku'}</button><button onclick="OSH=!OSH;go()">${OSH?'Metni gizle':'Metni göster'}</button></div>`;
+let b=`<button onclick="ON=null;OR=null;go()">Konulara dön</button><h3>${esc(s.t)}</h3><p class="mut">${OK+1}/${s.i.length}</p><div class="fc st"><div class="big" style="font-size:1.2rem">${esc(it.q)}</div></div><div class="row"><button onclick="say(ORAL[ON].i[OK].q.replace(/\\(e\\)/g,''))">Soruyu dinle</button><button onclick="say(ORAL[ON].i[OK].a.replace(/\\(e\\)/g,''))">Cevabı dinle</button><button class="${OREC?'':'p'}" onclick="orec()">${OREC?'Bitir':'Cevabı oku'}</button><button onclick="OSH=!OSH;go()">${OSH?'Metni gizle':'Metni göster'}</button><button onclick="ostart()">Cümleleri sırala</button></div>`;
 if(OREC)b+='<div class="fb">Dinleniyor... Bitirince "Bitir"e bas.</div>';
 if(OSH&&!r)b+=`<div class="fc st" style="text-align:left">${esc(it.a)}</div>`;
 if(r&&r.err)b+=`<div class="fb">${esc(r.err)}</div>`;
