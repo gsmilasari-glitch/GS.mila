@@ -153,7 +153,7 @@ function vTopics(){const d=draft||{name:'',vocab:[],gaps:[]};return `<p class="m
 <button class="p" onclick="addT()">Konuyu yayınla</button><h3>Yayındaki konular</h3>`+
 (topics.length?topics.map((t,i)=>`<div class="tp"><span><b>${esc(t.name)}</b><br><small class="mut">${t.vocab.length} kelime, ${t.gaps.length} boşluk cümlesi</small></span><button onclick="if(confirm('Bu konu silinsin mi?'))delT(${i})">Sil</button></div>`).join(''):'<p class="mut">Henüz konu yok. Yukarıdan ilk konunu ekle.</p>')}
 
-const TABS=[['cards','Kartlar',vCards],['quiz','Quiz',vQuiz],['read','Okuma',vRead],['listen','Dinle ve Konuş',vListen],['etre','Passé composé',vEtre],['oral','Sözlü',vOral],['tr','Çeviri',vTr],['topics','Yönetim',vTopics]];
+const TABS=[['cards','Kartlar',vCards],['quiz','Quiz',vQuiz],['read','Okuma',vRead],['listen','Dinle ve Konuş',vListen],['etre','Passé composé',vEtre],['oral','Sözlü',vOral],['yazili','1. Yazılı',vZ],['tr','Çeviri',vTr],['topics','Yönetim',vTopics]];
 function go(){if(!AUTH&&!ADMIN){$('nav').innerHTML='';$('#v').innerHTML=vLogin();return}$('nav').innerHTML=TABS.filter(t=>t[0]!='topics'||ADMIN).map(t=>`<button class="${t[0]==tab?'on':''}" onclick="tab='${t[0]}';go()">${t[1]}</button>`).join('');$('#v').innerHTML=TABS.find(t=>t[0]==tab)[2]()}
 const MAIN=$('main').outerHTML;
 const PROMPT='Bu, bir Fransızca A2 ders defterinin fotoğrafı. Yalnızca fotoğrafta okuyabildiğin içerikten çalış; okunmayanı atla, uydurma. Yalnızca JSON döndür: {"name":"konu adı","vocab":[{"fr":"","tr":""}],"gaps":[{"q":"içinde ___ bulunan Fransızca cümle","a":"boşluğa gelen kelime"}]}. vocab: defterdeki kelimeler ve Türkçe karşılıkları (karşılık yazılı değilse Türkçesini sen yaz). gaps: defterdeki cümle veya örneklerden en fazla 8 boşluk doldurma; cevap tek kelime ya da kısa ifade olsun.';
@@ -338,6 +338,142 @@ if(TSH&&!r)b+=`<div class="fc st" style="text-align:left">${esc(q[1])}</div>`;
 if(r&&r.err)b+=`<div class="fb">${esc(r.err)}</div>`;
 else if(r)b+=`<div class="fb"><b>Doğruluk: %${r.p}</b> · ${r.p>=80?'Doğru.':r.p>=50?'Yakın, bir daha dene.':'Tekrar dene; önce cevabı dinle.'}<br>Söylediğin: ${esc(r.said)}</div><div class="fc st" style="text-align:left">${r.words.map(w=>w[1]?esc(w[0]):`<b style="color:var(--bad)">${esc(w[0])}</b>`).join(' ')}</div><p class="mut">Kırmızı kelimeler söylenmedi ya da farklı anlaşıldı. Aynı anlama gelen başka bir cümle kurduysan puan düşük çıkabilir; bu bir çalışma göstergesidir.</p>`;
 return b+`<div class="row"><button class="p" onclick="TI++;TT=null;TSH=false;go()">Sonraki cümle</button><button onclick="tset(TF)">Karıştır</button></div>`}
+const VB=`faire|yapmak|a|fais,fais,fait,faisons,faites,font|fait
+venir|gelmek|e|viens,viens,vient,venons,venez,viennent|venu
+visiter|gezmek, ziyaret etmek|a|visite,visites,visite,visitons,visitez,visitent|visité
+partir|yola çıkmak, ayrılmak|e|pars,pars,part,partons,partez,partent|parti
+pouvoir|-ebilmek|a|peux,peux,peut,pouvons,pouvez,peuvent|pu
+aller|gitmek|e|vais,vas,va,allons,allez,vont|allé
+vouloir|istemek|a|veux,veux,veut,voulons,voulez,veulent|voulu
+être|olmak|a|suis,es,est,sommes,êtes,sont|été
+prendre|almak, binmek|a|prends,prends,prend,prenons,prenez,prennent|pris
+arriver|varmak|e|arrive,arrives,arrive,arrivons,arrivez,arrivent|arrivé
+rester|kalmak|e|reste,restes,reste,restons,restez,restent|resté
+voir|görmek|a|vois,vois,voit,voyons,voyez,voient|vu
+passer|geçirmek|a|passe,passes,passe,passons,passez,passent|passé
+se réveiller|uyanmak|r|me réveille,te réveilles,se réveille,nous réveillons,vous réveillez,se réveillent|réveillé
+se doucher|duş almak|r|me douche,te douches,se douche,nous douchons,vous douchez,se douchent|douché
+s’habiller|giyinmek|r|m’habille,t’habilles,s’habille,nous habillons,vous habillez,s’habillent|habillé
+se dépêcher|acele etmek|r|me dépêche,te dépêches,se dépêche,nous dépêchons,vous dépêchez,se dépêchent|dépêché`.split('\n').map(l=>{const[inf,tr,ax,p,pp]=l.split('|');return{inf,tr,ax,p:p.split(','),pp}});
+const WD=[['la plage','plaj'],['se balader','gezmek, dolaşmak'],['se détendre','dinlenmek, rahatlamak'],['la rentrée','okulların açılması, yeni dönem'],['un parc d’attractions','lunapark'],['faire du shopping','alışveriş yapmak'],['la cantine','okul yemekhanesi'],['prendre le train','trene binmek'],['heureux','mutlu'],['visiter','gezmek, ziyaret etmek'],['le centre commercial','alışveriş merkezi'],['la montagne','dağ'],['faire une sortie','gezmeye çıkmak'],['la salle de sport','spor salonu'],['la plongée','dalış'],['une valise','bavul'],['l’escalade','tırmanış'],['une piscine','havuz'],['le matériel scolaire','okul malzemeleri']].map(([fr,tr])=>({fr,tr}));
+const SJ=['je','tu','il','nous','vous','ils'],AV=['ai','as','a','avons','avez','ont'],ET=['suis','es','est','sommes','êtes','sont'],VA=['vais','vas','va','allons','allez','vont'],PR=['me','te','se','nous','vous','se'],EN=['(e)','(e)','','(e)s','(e)(s)','s'],TN={p:'présent',c:'passé composé',f:'futur proche'};
+const vow=s=>/^[aeiouéèêh]/i.test(s),sj=(i,f)=>i==0&&vow(f)?'j’'+f:SJ[i]+' '+f,bs=v=>v.ax=='r'?v.inf.replace(/^(se |s’)/,''):v.inf;
+const rpz=(i,a)=>(i==1&&vow(a)?'t’':i==2&&vow(a)?'s’':PR[i]+' ')+a,rf=(i,b)=>vow(b)&&[0,1,2,5].includes(i)?['m’','t’','s’','','','s’'][i]+b:PR[i]+' '+b;
+function fm(v,t,i,w){const b=bs(v),pp=v.pp,ag=pp+EN[i];if(t=='p')return sj(i,v.p[i]);
+if(t=='c'){if(!w)return v.ax=='a'?sj(i,AV[i])+' '+pp:v.ax=='e'?sj(i,ET[i])+' '+ag:SJ[i]+' '+rpz(i,ET[i])+' '+ag;
+if(w==1)return v.ax=='a'?sj(i,ET[i])+' '+ag:sj(i,AV[i])+' '+pp;
+return v.ax=='a'?sj(i,AV[i])+' '+b:v.ax=='e'?sj(i,ET[i])+' '+b:SJ[i]+' '+PR[i]+' '+pp}
+const inf=v.ax=='r'?rf(i,b):b;if(!w)return sj(i,VA[i])+' '+inf;if(w==1)return sj(i,VA[i])+' '+pp;return sj(i,v.p[i])}
+function vq(inf,t,i){const v=VB.find(x=>x.inf==inf),a=fm(v,t,i,0);let o=[...new Set([a,fm(v,t,i,1),fm(v,t,i,2)])];for(let k=1;o.length<3&&k<6;k++){const e=fm(v,t,(i+k)%6,0);if(!o.includes(e))o.push(e)}
+return{key:'v:'+inf+':'+t,p:SJ[i]+' · '+inf+' ('+v.tr+') · '+TN[t],o:sh(o),a,spec:{t:'v',inf,tn:t,i}}}
+function wq(w,m){const ot=sh(WD.filter(x=>x!==w)).slice(0,2),k=m=='b'?'fr':'tr',pk=m=='b'?'tr':'fr';
+return{key:'w:'+w.fr,p:w[pk],o:sh([w,...ot].map(x=>x[k])),a:w[k],spec:{t:'w',fr:w.fr,m}}}
+const SB=[
+['Her sabah saat yedide uyanıyorum.','Chaque matin, je me réveille à sept heures.','p','réveilles lève'],
+['Hafta sonu arkadaşlarımla plaja gidiyorum.','Le week-end, je vais à la plage avec mes amis.','p','vas allé'],
+['Biz alışveriş merkezinde alışveriş yapıyoruz.','Nous faisons du shopping au centre commercial.','p','faisez fait'],
+['Okuldan sonra bize gelebilir misin?','Tu peux venir chez moi après l’école ?','p','peut venu'],
+['Mila okul yemekhanesinde yemek yiyor.','Mila mange à la cantine.','p','mangeons manges'],
+['O bugün mutlu.','Elle est heureuse aujourd’hui.','p','es heureux'],
+['Siz Lyon’a gitmek için trene biniyorsunuz.','Vous prenez le train pour aller à Lyon.','p','prennent prends'],
+['Onlar dağda dinleniyor.','Ils se détendent à la montagne.','p','détends nous'],
+['Okuldan sonra spor salonuna gidiyorum.','Après l’école, je vais à la salle de sport.','p','vas allons'],
+['Sabahları biz acele ediyoruz.','Le matin, nous nous dépêchons.','p','dépêchez me'],
+['Dün plaja gittim.','Hier, je suis allé(e) à la plage.','c','ai vais aller'],
+['Geçen hafta sonu alışveriş yaptık.','Le week-end dernier, nous avons fait du shopping.','c','sommes faire'],
+['Mila bu sabah uyandı ve duş aldı.','Mila s’est réveillée et s’est douchée ce matin.','c','a est'],
+['Biz trene bindik.','Nous avons pris le train.','c','sommes prendre'],
+['Onlar bizde kaldılar.','Ils sont restés chez nous.','c','ont rester'],
+['Sen müzeyi ziyaret ettin.','Tu as visité le musée.','c','es visiter'],
+['Dağda çok güzel bir gün geçirdim.','J’ai passé une très bonne journée à la montagne.','c','suis passer'],
+['Siz saat sekizde geldiniz.','Vous êtes arrivés à huit heures.','c','avez arriver'],
+['Dün akşam acele ettik.','Hier soir, nous nous sommes dépêchés.','c','avons dépêchons'],
+['O hızlıca giyindi.','Elle s’est habillée rapidement.','c','a habillé'],
+['Yarın okula gideceğim.','Demain, je vais aller à l’école.','f','vas allé'],
+['Hafta sonu lunaparkı ziyaret edeceğiz.','Ce week-end, nous allons visiter un parc d’attractions.','f','allez visité'],
+['Bu akşam erken yatacağım.','Ce soir, je vais me coucher tôt.','f','vas couché'],
+['Bizimle gelecek misin?','Tu vas venir avec nous ?','f','venu va'],
+['Onlar yarın yola çıkacak.','Ils vont partir demain.','f','vais parti'],
+['Siz trene bineceksiniz.','Vous allez prendre le train.','f','allons pris'],
+['Yarın sabah duş alacağım.','Demain matin, je vais me doucher.','f','vas douché'],
+['Bugün alışveriş merkezinde alışveriş yapacağız.','Aujourd’hui, nous allons faire du shopping au centre commercial.','f','faisons allez'],
+['Arkadaşı yarın gelecek.','Son ami va venir demain.','f','est venu'],
+['Yarın acele etmeyeceğiz.','Demain, nous n’allons pas nous dépêcher.','f','ne dépêchons']];
+const rn=n=>Math.floor(Math.random()*n);
+let YM=ld('ym',{}),WR=ld('wr',{}),YQ=null,yi=0,ys=0,ya=null,YK=['',''],YP=0,YS={},YOK=false,ZB=null,ZP=[],ZH=false,ZR=null,ZW=null,ZX='',ZC=null,ZV=false;
+const lvl=k=>YM[k]||0,nzf=s=>s.toLowerCase().replace(/'/g,'’').replace(/\s+/g,' ').trim(),noacc=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+function tcheck(q,u){const f=(s,lx)=>{let x=nzf(s).replace(/\(e\)|\(s\)/g,'');if(lx){const r=x.split(' ');r[r.length-1]=r[r.length-1].replace(/(?<=[éiu])(es|e|s)$/,'');x=r.join(' ')}return noacc(x)};return f(q.a,q.lax)==f(u,q.lax)}
+function yq(inf,t,i){const v=VB.find(x=>x.inf==inf);return{y:'t',key:'y:'+inf+':'+t,p:SJ[i]+' · '+inf+' ('+v.tr+') · '+TN[t],a:fm(v,t,i,0),lax:t=='c'&&v.ax!='a',spec:{t:'y',inf,tn:t,i}}}
+function sq(n){const[tr,fr,t,ex]=SB[n],punct=(fr.match(/\s?[.!?]$/)||[''])[0],words=fr.replace(/\s?[.!?]$/,'').split(' ');return{y:'b',key:'s:'+n,p:tr,a:fr,words,punct,t,tiles:sh([...words,...ex.split(' ')]).map((w,k)=>({w,k})),spec:{t:'s',n}}}
+const pq=w=>({y:'p',key:'p:'+w.fr,p:w.fr,a:w.fr,spec:{t:'p',fr:w.fr}});
+function zfrom(s){return s.t=='w'?wq(WD.find(x=>x.fr==s.fr),s.m):s.t=='v'?vq(s.inf,s.tn,s.i):s.t=='y'?yq(s.inf,s.tn,s.i):s.t=='s'?sq(s.n):pq(WD.find(x=>x.fr==s.fr))}
+function mock(){const T=()=>'pcf'[rn(3)],S=(a,o)=>a.map(q=>({...q,...o}));
+return[...S(sh(WD).slice(0,10).map(w=>wq(w,rn(2)?'a':'b')),{pts:2,sec:'Kelime'}),...S(sh(VB).slice(0,5).map(v=>vq(v.inf,T(),rn(6))),{pts:2,sec:'Fiil seç'}),...S(sh(VB).slice(0,10).map(v=>yq(v.inf,T(),rn(6))),{pts:3,sec:'Fiil yaz'}),...S(sh(SB.map((_,n)=>n)).slice(0,5).map(sq),{pts:8,sec:'Cümle'})]}
+function zstart(kind,mode){YK=[kind,mode];ZH=false;ZB=null;ZR=null;const low=(a,k)=>sh(a).sort((x,y)=>lvl(k(x))-lvl(k(y)));let L=[];
+if(kind=='w')L=low(WD,x=>'w:'+x.fr).slice(0,10).map(w=>wq(w,mode));
+else if(kind=='v')L=low(VB,v=>'v:'+v.inf+':'+mode).slice(0,10).map(v=>vq(v.inf,mode,rn(6)));
+else if(kind=='y')L=low(VB,v=>'y:'+v.inf+':'+mode).slice(0,10).map(v=>yq(v.inf,mode,rn(6)));
+else if(kind=='s')L=low(SB.map((_,n)=>n).filter(n=>SB[n][2]==mode),n=>'s:'+n).slice(0,8).map(sq);
+else if(kind=='p')L=low(WD,x=>'p:'+x.fr).slice(0,10).map(pq);
+else if(kind=='x')L=sh(Object.values(WR)).slice(0,10).map(zfrom);
+else L=mock();
+YQ=L;yi=0;ys=0;ya=null;YP=0;YS={};go()}
+function zmark(q,ok){const k=q.key;YOK=ok;YM[k]=ok?Math.min(2,lvl(k)+1):0;if(ok)delete WR[k];else if(q.spec)WR[k]=q.spec;if(ok){ys++;if(q.pts)YP+=q.pts}
+if(q.sec){YS[q.sec]=YS[q.sec]||[0,0];YS[q.sec][1]++;if(ok)YS[q.sec][0]++}sv('ym',YM);sv('wr',WR)}
+function yans(i){const q=YQ[yi];ya=i;zmark(q,q.o[i]==q.a);go()}
+function ytype(){const q=YQ[yi],u=$('#zi').value;ya=u;zmark(q,tcheck(q,u));go()}
+function zpl(k){ZP.push(ZB.splice(ZB.findIndex(x=>x.k==k),1)[0]);go()}
+function zundo(){if(ZP.length)ZB.push(ZP.pop());go()}
+function zclr(){ZB.push(...ZP.splice(0));go()}
+function zchk(){const q=YQ[yi],u=ZP.map(x=>x.w).join(' ');ya=u;zmark(q,u==q.words.join(' '));go()}
+function znext(){yi++;ya=null;ZB=null;ZR=null;ZH=false;go()}
+function micOnce(cb){const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){cb(null,'Bu tarayıcı konuşma tanımayı desteklemiyor. Chrome veya Safari dene.');return}
+const r=new R();r.lang='fr-FR';r.onresult=e=>cb(e.results[0][0].transcript);r.onerror=()=>cb(null,'Mikrofon izni verilmedi ya da ses alınamadı. Tekrar dene.');r.start()}
+function zsay(){micOnce((t,e)=>{const q=YQ[yi];if(e)ZR={err:e};else{const s=score(q.a,t);ZR={p:s.p,said:t};if(ya==null){ya=1;zmark(q,s.p>=80)}}go()})}
+function rdy(){const A=(ks,m)=>ks.reduce((t,k)=>t+lvl(k),0)/(ks.length*m),g=[];VB.forEach(v=>'pcf'.split('').forEach(t=>g.push((lvl('v:'+v.inf+':'+t)+lvl('y:'+v.inf+':'+t))/4)));
+const w=A(WD.map(x=>'w:'+x.fr),2),f=g.reduce((a,b)=>a+b,0)/g.length,s=A(SB.map((_,n)=>'s:'+n),2),p=A(WD.map(x=>'p:'+x.fr),2),R=x=>Math.round(x*100);return{w:R(w),f:R(f),s:R(s),p:R(p),t:R(w*.25+f*.35+s*.3+p*.1)}}
+const ybar=(l,p)=>`<p style="margin:8px 0 2px">${l} %${p}</p><div style="height:10px;background:var(--line);border-radius:5px"><div style="height:10px;width:${p}%;background:var(--ac);border-radius:5px"></div></div>`;
+const zb=(l,a)=>`<button class="p" onclick="${a}">${l}</button>`;
+function zhome(){const r=rdy(),d=Math.max(0,Math.ceil((new Date(2026,10,2)-new Date())/864e5)),n=Object.keys(WR).length;
+return `<div class="fc st"><div class="big">%${r.t}</div><small>Hazırlık · 2 Kasım’a ${d} gün</small></div>`+ybar('Kelime',r.w)+ybar('Fiil çekimi',r.f)+ybar('Cümle kurma',r.s)+ybar('Telaffuz',r.p)+
+`<p class="mut">Her soru üst üste iki kez doğru bilinince “biliyor” sayılır, yanlış cevap sıfırlar. Yüzde: kelime %25, fiil %35, cümle %30, telaffuz %10. Yazılı üretim yüzdeye girmez.</p>
+<h3>Kelime</h3><div class="row">${zb('Fransızca → Türkçe',"zstart('w','a')")}${zb('Türkçe → Fransızca',"zstart('w','b')")}${zb('Telaffuz',"zstart('p','')")}</div>
+<h3>Fiil çekimi: seç</h3><div class="row">${zb('Présent',"zstart('v','p')")}${zb('Passé composé',"zstart('v','c')")}${zb('Futur proche',"zstart('v','f')")}</div>
+<h3>Fiil çekimi: yaz</h3><div class="row">${zb('Présent',"zstart('y','p')")}${zb('Passé composé',"zstart('y','c')")}${zb('Futur proche',"zstart('y','f')")}</div>
+<h3>Cümle kurma</h3><div class="row">${zb('Şimdiki zaman',"zstart('s','p')")}${zb('Geçmiş zaman',"zstart('s','c')")}${zb('Gelecek zaman',"zstart('s','f')")}</div>
+<h3>Yazılı üretim</h3><div class="row">${zb('Konu seç ve yaz',"ZW='menu';go()")}</div>
+<h3>Tekrar ve deneme</h3><div class="row">${n?`<button onclick="zstart('x','')">Yanlışlarım (${n})</button>`:''}<button onclick="zstart('m','')">Deneme sınavı (100 puan)</button></div>`}
+function zq(){const q=YQ[yi],y=q.y||'m',d=ya!=null;
+let b=`<div class="row"><button onclick="YQ=null;ZB=null;go()">← Ana menü</button></div><p class="mut">${yi+1}/${YQ.length}${q.sec?' · '+q.sec:''}</p><div class="fc st"><div class="big" style="font-size:1.25rem">${esc(q.p)}</div></div>`;
+if(y=='m')b+=q.o.map((o,i)=>`<button class="opt ${d?(o==q.a?'ok':i==ya?'bad':''):''}" ${d?'disabled':''} onclick="yans(${i})">${esc(o)}</button>`).join('');
+else if(y=='t')b+=`<p class="mut">Özneyle birlikte yaz. Örnek: je suis allé(e)</p><input id="zi" ${d?'disabled value="'+esc(ya)+'"':''} autocomplete="off" autocapitalize="none" onkeydown="if(event.key=='Enter')ytype()">`+(d?'':'<button class="p" onclick="ytype()">Kontrol et</button>');
+else if(y=='b'){if(!ZB){ZB=[...q.tiles];ZP=[]}
+b+=`<div class="fc st" style="text-align:left;min-height:56px">${ZP.length?esc(ZP.map(x=>x.w).join(' ')+(d?q.punct:'')):'<span class="mut">Kelimelere dokunarak cümleyi kur.</span>'}</div>`;
+if(!d)b+=ZB.map(x=>`<button style="margin:3px" onclick="zpl(${x.k})">${esc(x.w)}</button>`).join('')+`<div class="row"><button onclick="zundo()">Geri al</button><button onclick="zclr()">Temizle</button><button onclick="ZH=!ZH;go()">Zaman ipucu</button><button class="p" onclick="zchk()">Kontrol et</button></div>`+(ZH?`<p class="mut">Zaman: ${TN[q.t]}</p>`:'')}
+else b+=`<div class="row"><button class="p" onclick="zsay()">Söyle</button></div>`+(ZR?(ZR.err?`<div class="fb">${esc(ZR.err)}</div>`:`<div class="fb"><b>%${ZR.p}</b> · ${ZR.p>=80?'Doğru.':'Tekrar söyleyebilirsin.'}<br>Duyulan: ${esc(ZR.said)}</div>`):'');
+if(d&&y!='p')b+=`<div class="fb">${YOK?'Doğru.':'Yanlış.'} Doğrusu: <b>${esc(y=='b'?q.words.join(' ')+q.punct:q.a)}</b></div>`;
+if(d)b+=`<button class="p" onclick="znext()">Sonraki</button>`;
+return b}
+function zres(){const m=YK[0]=='m',w=Object.entries(YS).sort((a,b)=>a[1][0]/a[1][1]-b[1][0]/b[1][1])[0];
+return `<div class="fc st"><div class="big">${m?YP+'/100':ys+'/'+YQ.length}</div><small>${m?(YP>=90?'Hazırsın.':'Zayıf bölüm: '+(w?w[0]:'')):(ys==YQ.length?'Mükemmel.':'Yanlışların “Yanlışlarım” bölümüne kaydedildi.')}</small></div>`+(m?Object.entries(YS).map(([k,v])=>`<p>${esc(k)}: ${v[0]}/${v[1]}</p>`).join('')+'<p class="mut">Puan dağılımı benim varsayımım: kelime 20, fiil seç 10, fiil yaz 30, cümle 40.</p>':'')+`<div class="row"><button class="p" onclick="zstart(YK[0],YK[1])">Yeni tur</button><button onclick="YQ=null;go()">Ana menü</button></div>`}
+const WT=[[0,'p'],[1,'p'],[2,'p'],[3,'c'],[5,'p'],[6,'c'],[7,'f'],[8,'p'],[9,'p'],[10,'p'],[11,'p'],[12,'c'],[14,'p'],[15,'c']];
+function zwc(){const x=$('#zt').value;ZX=x;const t=WT.find(a=>a[0]==ZW)[1],low=x.toLowerCase().replace(/'/g,'’'),words=x.trim()?x.trim().split(/\s+/).length:0,
+aux=/(?<!\p{L})(j’ai|tu as|il a|elle a|on a|nous avons|vous avez|ils ont|elles ont|je suis|tu es|il est|elle est|nous sommes|vous êtes|ils sont|elles sont|me suis|t’es|s’est|se sont)\s+\p{L}+/gu,
+fut=/(?<!\p{L})(vais|vas|va|allons|allez|vont)\s+(?:(?:me|te|se|nous|vous|m’|t’|s’)\s*)?\p{L}{3,}(?:er|ir|re)(?!\p{L})/gu,
+nA=(low.match(aux)||[]).length,nF=(low.match(fut)||[]).length,
+tm={c:/hier|dernier|dernière|le premier jour|ensuite|après/,f:/demain|prochain|prochaine|ce soir|bientôt/,p:/le matin|le soir|l’après-midi|chaque|souvent|toujours|parfois|le week-end/}[t],
+sen=x.split(/(?<=[.!?])\s+/).filter(s=>s.trim()),cap=sen.length>0&&sen.every(s=>/^\p{Lu}/u.test(s.trim())),endp=/[.!?]\s*$/.test(x.trim()),
+voc=WD.filter(w=>low.includes(w.fr.toLowerCase())).length;
+ZC=[[words>=40,'Uzunluk: '+words+' kelime (öneri: en az 40, en çok 80 civarı)'],
+[t=='c'?nA>=2:t=='f'?nF>=2:true,t=='c'?'Passé composé yapısı '+nA+' kez bulundu (en az 2 olmalı)':t=='f'?'Futur proche yapısı '+nF+' kez bulundu (en az 2 olmalı)':'Şimdiki zaman konusu: zaman ayrıca kontrol edilmedi'],
+[tm.test(low),'Zaman ifadesi kullanıldı (hier, demain, le matin gibi)'],
+[cap&&endp,'Her cümle büyük harfle başlıyor ve noktalama ile bitiyor'],
+[voc>0,'Sınav kelimelerinden '+voc+' tanesini kullandın']];go()}
+function vWrite(){
+if(ZW=='menu')return `<div class="row"><button onclick="ZW=null;go()">← Ana menü</button></div><p class="mut">Konuyu seç, kendi cümlelerinle yaz. Kontrol listesi yaklaşık bir yardımcıdır, öğretmenin notu değildir.</p>`+WT.map(([i])=>`<button class="opt" onclick="ZW=${i};ZX='';ZC=null;ZV=false;go()">${i>=9?'Sözlü 2':'Sözlü 1'} · ${esc(ORAL[i].t)}</button>`).join('');
+const o=ORAL[ZW],t=WT.find(x=>x[0]==ZW)[1];
+return `<div class="row"><button onclick="ZW='menu';go()">← Konular</button></div><h3>${esc(o.t)}</h3><div class="fc st"><div class="big" style="font-size:1.1rem">${esc(o.i[0].q)}</div></div><p class="mut">Hedef zaman: ${TN[t]}</p><textarea id="zt" rows="9" placeholder="Fransızca yaz...">${esc(ZX)}</textarea><div class="row"><button class="p" onclick="zwc()">Kontrol et</button><button onclick="ZX=$('#zt').value;ZV=!ZV;go()">${ZV?'Örneği gizle':'Örnek metni göster'}</button></div>`+(ZC?`<div class="fb">${ZC.map(x=>(x[0]?'✓ ':'✗ ')+esc(x[1])).join('<br>')}</div>`:'')+(ZV?`<div class="fc st" style="text-align:left">${esc(o.i[0].a)}</div><p class="mut">Örnek tek doğru değildir, kendi cümlelerin de kabul edilir.</p>`:'')}
+function vZ(){if(ZW!=null)return vWrite();if(!YQ)return zhome();if(!YQ.length)return '<p>Bu çalışmada soru yok.</p><button onclick="YQ=null;go()">Geri</button>';if(yi>=YQ.length)return zres();return zq()}
 let PC=true;
 let PX=false,XQ=null,xi=0,xs=0,xa=null,xw=[];
 const inf=v=>v.replace(/^(se |s’)/,'').replace(/ \(.*\)$/,'');
