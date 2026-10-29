@@ -28,6 +28,14 @@ button:disabled{cursor:default}
 input,select,textarea{font:inherit;width:100%;padding:10px;margin:6px 0;border:1.5px solid var(--line);border-radius:4px;background:var(--card);color:var(--txt)}
 label{display:block;margin-top:10px;font-weight:600;font-size:.92rem}
 .tp{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--card);border:1.5px solid var(--line);padding:10px 12px;margin:8px 0;border-radius:4px}
+canvas.ink{background:#fff;border:1.5px dashed var(--ac);border-radius:6px;touch-action:none;display:block}
+canvas.ink.in{display:inline-block;width:240px;height:58px;vertical-align:middle;margin:2px 6px}
+.wsr{margin:12px 0;font-size:1.08rem;line-height:1.9}.wsr.col{display:block}.cw{position:relative}.cw canvas.ink{width:100%}
+.clr{padding:2px 8px;font-size:.8rem;margin-right:6px}.cw .clr{position:absolute;right:6px;top:6px}
+.dot{width:34px;height:34px;border-radius:50%;padding:0;border:2px solid #fff}
+.ans{margin:2px 0 8px 10px;font-size:.92rem;color:var(--ok)}.mk{padding:3px 10px;font-size:.8rem;margin-left:6px}.mk.on{background:var(--ok);color:#fff;border-color:var(--ok)}.mk.bad{background:var(--bad);color:#fff;border-color:var(--bad)}
+.wtool{position:sticky;top:0;background:var(--paper);padding:8px 0;z-index:5;align-items:center}
+body.wide main{max-width:920px}
 </style></head><body><main>
 <h1>GS MİLA</h1>
 <p class="sub">Fransızca A2: kelime, dilbilgisi, okuma, dinleme.</p>
@@ -153,8 +161,8 @@ function vTopics(){const d=draft||{name:'',vocab:[],gaps:[]};return `<p class="m
 <button class="p" onclick="addT()">Konuyu yayınla</button><h3>Yayındaki konular</h3>`+
 (topics.length?topics.map((t,i)=>`<div class="tp"><span><b>${esc(t.name)}</b><br><small class="mut">${t.vocab.length} kelime, ${t.gaps.length} boşluk cümlesi</small></span><button onclick="if(confirm('Bu konu silinsin mi?'))delT(${i})">Sil</button></div>`).join(''):'<p class="mut">Henüz konu yok. Yukarıdan ilk konunu ekle.</p>')}
 
-const TABS=[['cards','Kartlar',vCards],['quiz','Quiz',vQuiz],['read','Okuma',vRead],['listen','Dinle ve Konuş',vListen],['etre','Passé composé',vEtre],['oral','Sözlü',vOral],['yazili','1. Yazılı',vZ],['tr','Çeviri',vTr],['topics','Yönetim',vTopics]];
-function go(){if(!AUTH&&!ADMIN){$('nav').innerHTML='';$('#v').innerHTML=vLogin();return}$('nav').innerHTML=TABS.filter(t=>t[0]!='topics'||ADMIN).map(t=>`<button class="${t[0]==tab?'on':''}" onclick="tab='${t[0]}';go()">${t[1]}</button>`).join('');$('#v').innerHTML=TABS.find(t=>t[0]==tab)[2]()}
+const TABS=[['cards','Kartlar',vCards],['quiz','Quiz',vQuiz],['read','Okuma',vRead],['listen','Dinle ve Konuş',vListen],['etre','Passé composé',vEtre],['oral','Sözlü',vOral],['yazili','1. Yazılı',vZ],['ws','Çalışma Sayfaları',vWs],['tr','Çeviri',vTr],['topics','Yönetim',vTopics]];
+function go(){if(!AUTH&&!ADMIN){$('nav').innerHTML='';$('#v').innerHTML=vLogin();return}$('nav').innerHTML=TABS.filter(t=>t[0]!='topics'||ADMIN).map(t=>`<button class="${t[0]==tab?'on':''}" onclick="tab='${t[0]}';go()">${t[1]}</button>`).join('');$('#v').innerHTML=TABS.find(t=>t[0]==tab)[2]();document.body.classList.toggle('wide',tab=='ws');if(tab=='ws')inkInit()}
 const MAIN=$('main').outerHTML;
 const PROMPT='Bu, bir Fransızca A2 ders defterinin fotoğrafı. Yalnızca fotoğrafta okuyabildiğin içerikten çalış; okunmayanı atla, uydurma. Yalnızca JSON döndür: {"name":"konu adı","vocab":[{"fr":"","tr":""}],"gaps":[{"q":"içinde ___ bulunan Fransızca cümle","a":"boşluğa gelen kelime"}]}. vocab: defterdeki kelimeler ve Türkçe karşılıkları (karşılık yazılı değilse Türkçesini sen yaz). gaps: defterdeki cümle veya örneklerden en fazla 8 boşluk doldurma; cevap tek kelime ya da kısa ifade olsun.';
 async function shrink(f){const b=await createImageBitmap(f,{imageOrientation:'from-image'}),k=Math.min(1,1600/Math.max(b.width,b.height)),c=document.createElement('canvas');c.width=Math.round(b.width*k);c.height=Math.round(b.height*k);c.getContext('2d').drawImage(b,0,0,c.width,c.height);return new Promise(r=>c.toBlob(r,'image/jpeg',.85))}
@@ -474,6 +482,151 @@ if(ZW=='menu')return `<div class="row"><button onclick="ZW=null;go()">← Ana me
 const o=ORAL[ZW],t=WT.find(x=>x[0]==ZW)[1];
 return `<div class="row"><button onclick="ZW='menu';go()">← Konular</button></div><h3>${esc(o.t)}</h3><div class="fc st"><div class="big" style="font-size:1.1rem">${esc(o.i[0].q)}</div></div><p class="mut">Hedef zaman: ${TN[t]}</p><textarea id="zt" rows="9" placeholder="Fransızca yaz...">${esc(ZX)}</textarea><div class="row"><button class="p" onclick="zwc()">Kontrol et</button><button onclick="ZX=$('#zt').value;ZV=!ZV;go()">${ZV?'Örneği gizle':'Örnek metni göster'}</button></div>`+(ZC?`<div class="fb">${ZC.map(x=>(x[0]?'✓ ':'✗ ')+esc(x[1])).join('<br>')}</div>`:'')+(ZV?`<div class="fc st" style="text-align:left">${esc(o.i[0].a)}</div><p class="mut">Örnek tek doğru değildir, kendi cümlelerin de kabul edilir.</p>`:'')}
 function vZ(){if(ZW!=null)return vWrite();if(!YQ)return zhome();if(!YQ.length)return '<p>Bu çalışmada soru yok.</p><button onclick="YQ=null;go()">Geri</button>';if(yi>=YQ.length)return zres();return zq()}
+const WS=[
+{t:'1. Le présent',m:'i',d:'Complète en conjuguant les verbes entre parenthèses au présent. Fais attention aux sujets et aux accords !',r:`Je|mes devoirs après l’école.|faire|fais
+Tu|avec nous à la plage.|venir|viens
+Nous|un musée.|visiter|visitons
+Vous|en vacances demain.|partir|partez
+Elles|prendre le train.|pouvoir|peuvent
+Nous|à la cantine.|aller|allons
+Tu|faire du shopping.|vouloir|veux
+Ils|heureux.|être|sont
+Je|le bus pour aller à l’école.|prendre|prends
+Vous|à huit heures.|arriver|arrivez
+Elle|à la maison.|rester|reste
+Nous|nos amis le week-end.|voir|voyons
+Tu|tes vacances à la montagne.|passer|passes
+Je|à sept heures.|se réveiller|me réveille
+Vous|après le sport.|se doucher|vous douchez
+Elle|avant le petit-déjeuner.|s’habiller|s’habille
+Nous|pour arriver à l’heure.|se dépêcher|nous dépêchons`},
+{t:'2. Le passé composé',m:'i',d:'Complète en conjuguant les verbes entre parenthèses au passé composé. Fais attention aux sujets et aux accords !',r:`Hier, nous|une sortie en famille.|faire|avons fait
+Léa|chez moi samedi.|venir|est venue
+Vous|le centre-ville.|visiter|avez visité
+Paul et Lucas|à la montagne.|partir|sont partis
+J’|me détendre pendant les vacances.|pouvoir|ai pu
+Marie|à la plage.|aller|est allée
+Ils|visiter le parc d’attractions.|vouloir|ont voulu
+Nous|très heureux de cette visite.|être|avons été
+Tu|le train ce matin.|prendre|as pris
+Les filles|en retard.|arriver|sont arrivées
+Sophie|chez elle dimanche.|rester|est restée
+Vous|un beau film.|voir|avez vu
+Nous|une bonne journée.|passer|avons passé
+Emma|à huit heures.|se réveiller|s’est réveillée
+Les garçons|après le match.|se doucher|se sont douchés
+Julie|rapidement.|s’habiller|s’est habillée
+Elles|pour prendre le bus.|se dépêcher|se sont dépêchées`},
+{t:'3. Le futur proche',m:'i',d:'Complète en conjuguant les verbes entre parenthèses au futur proche. Fais attention aux sujets et aux accords !',r:`Demain, je|du shopping.|faire|vais faire
+Tu|chez nous ce soir.|venir|vas venir
+Nous|un château.|visiter|allons visiter
+Vous|en vacances samedi.|partir|allez partir
+Après les examens, ils|se détendre.|pouvoir|vont pouvoir
+Elle|à la salle de sport.|aller|va aller
+Après cette visite, tu|revenir !|vouloir|vas vouloir
+Nous|en retard !|être|allons être
+Je|le train demain matin.|prendre|vais prendre
+Mes cousins|ce soir.|arriver|vont arriver
+Vous|à la maison ce week-end.|rester|allez rester
+Nous|nos amis dimanche.|voir|allons voir
+Elle|ses vacances à la montagne.|passer|va passer
+Demain, tu|à six heures.|se réveiller|vas te réveiller
+Après le sport, je|.|se doucher|vais me doucher
+Les enfants|avant de sortir.|s’habiller|vont s’habiller
+Nous|pour ne pas rater le train.|se dépêcher|allons nous dépêcher`},
+{t:'4. À toi d’écrire !',m:'a',h:110,d:'Écris trois phrases complètes avec des verbes de la liste.',r:`Au présent : Que fais-tu habituellement le soir ?|||
+Au passé composé : Qu’as-tu fait le week-end dernier ?|||
+Au futur proche : Que vas-tu faire pendant les prochaines vacances ?|||`},
+{t:'5. Vocabulaire : texte à trou',m:'i',b:'se balader – se détendre – la rentrée – un parc d’attractions – la plage – faire du shopping – la cantine – prendre le train – heureux – visiter – le centre commercial – la montagne – faire une sortie – la salle de sport',d:'Complète les phrases avec les mots de la liste.',r:`En septembre, les élèves retournent à l’école : c’est|.||la rentrée
+À midi, les élèves déjeunent à|.||la cantine
+En été, nous allons à|pour nager dans la mer et jouer dans le sable.||la plage
+En hiver, nous partons à|pour faire du ski.||la montagne
+Pour aller de Paris à Lyon, on peut|||prendre le train
+Pendant les vacances, j’aime|des musées et des monuments.||visiter
+Pour acheter des vêtements dans différentes boutiques, nous allons dans|près de chez nous.||le centre commercial
+Ma sœur adore|: elle aime acheter des vêtements et des chaussures.||faire du shopping
+Le dimanche, nous aimons|dans le parc pour profiter du beau temps.||se balader
+Après une semaine de travail, il est agréable de|et de se reposer.||se détendre
+Pour faire de la musculation, mon frère va à|.||la salle de sport
+À Disneyland, on peut profiter des manèges : c’est|.||un parc d’attractions
+Nous allons|en famille : nous avons prévu d’aller au cinéma samedi.||faire une sortie
+Les enfants sont|parce que les vacances commencent !||heureux`},
+{t:'6. Adjectifs démonstratifs : ce, cet, cette, ces',m:'i',d:'Exercice 1 – Complète avec ce, cet, cette ou ces.',r:`|collège propose beaucoup d’activités.||Ce
+|école est près de chez moi.||Cette
+|ordinateur est dans la salle de classe.||Cet
+|élèves travaillent en groupe.||Ces
+|bibliothèque est très grande.||Cette
+|professeur enseigne le français.||Ce
+|atelier de théâtre est intéressant.||Cet
+|salles de classe sont lumineuses.||Ces
+|emploi du temps est bien organisé.||Cet
+|cour de récréation est agréable.||Cette
+|homme est le directeur du collège.||Cet
+|livres sont sur la table.||Ces
+|gymnase est moderne.||Ce
+|histoire est amusante.||Cette
+|exercices sont faciles.||Ces
+|cantine propose des repas variés.||Cette`},
+{t:'7. Adjectifs démonstratifs : le pluriel',m:'i',d:'Exercice 2 – Mets les groupes de mots au pluriel. Exemple : ce collège → ces collèges',r:`Cette classe →|||Ces classes
+Cet ordinateur →|||Ces ordinateurs
+Ce professeur →|||Ces professeurs
+Cette salle →|||Ces salles
+Cet atelier →|||Ces ateliers
+Ce livre →|||Ces livres`},
+{t:'8. Mon collège idéal : 4 phrases',m:'l',h:64,d:'Exercice 3 – Présente ton collège idéal. Écris quatre phrases en utilisant un adjectif démonstratif différent dans chaque phrase.',r:`1. Ce …|||
+2. Cet …|||
+3. Cette …|||
+4. Ces …|||`},
+{t:'9. La négation : présent',m:'l',h:60,d:'Mets les phrases à la forme négative (verbes pronominaux au présent).',r:`Je me réveille à sept heures.|||Je ne me réveille pas à sept heures.
+Tu te douches le matin.|||Tu ne te douches pas le matin.
+Elle s’habille rapidement.|||Elle ne s’habille pas rapidement.
+Nous nous dépêchons pour aller au collège.|||Nous ne nous dépêchons pas pour aller au collège.
+Vous vous promenez après le dîner.|||Vous ne vous promenez pas après le dîner.
+Ils se reposent le dimanche.|||Ils ne se reposent pas le dimanche.`},
+{t:'10. La négation : passé composé',m:'l',h:60,d:'Mets les phrases à la forme négative (passé composé).',r:`J’ai fait mes devoirs.|||Je n’ai pas fait mes devoirs.
+Tu as pris le train.|||Tu n’as pas pris le train.
+Elle est allée à la plage.|||Elle n’est pas allée à la plage.
+Nous avons visité le musée.|||Nous n’avons pas visité le musée.
+Vous vous êtes réveillés tôt.|||Vous ne vous êtes pas réveillés tôt.
+Elles se sont dépêchées.|||Elles ne se sont pas dépêchées.`},
+{t:'11. La négation : futur proche',m:'l',h:60,d:'Mets les phrases à la forme négative (futur proche).',r:`Je vais faire du shopping.|||Je ne vais pas faire du shopping.
+Tu vas te réveiller tôt.|||Tu ne vas pas te réveiller tôt.
+Il va prendre le bus.|||Il ne va pas prendre le bus.
+Nous allons nous promener.|||Nous n’allons pas nous promener.
+Vous allez visiter le château.|||Vous n’allez pas visiter le château.
+Elles vont se dépêcher.|||Elles ne vont pas se dépêcher.`},
+{t:'12. Expression écrite : mon collège idéal',m:'a',h:360,d:'Imagine le collège de tes rêves. Décris les bâtiments, les salles de classe et les espaces de loisirs. Présente les matières, les horaires, les professeurs et les activités proposées. Explique pourquoi tu aimerais étudier dans ce collège. (minimum 60 mots)',r:`|||`}];
+let INK=ld('ink',{}),INKM=ld('inkm',{}),INC='#1a3fbf',PENM=false,FING=false,LASTC=null,WSV=null,WSA=false;
+const wrows=(s)=>s.r.split('\n').map(l=>l.split('|'));
+const wid=(i,j)=>'ws:'+i+':'+j;
+function wprog(i){const rows=wrows(WS[i]),n=rows.filter(f=>f[3]&&f[3].trim()).length,ok=rows.filter((f,j)=>f[3]&&f[3].trim()&&INKM[wid(i,j)]==1).length;return n?'✓ '+ok+'/'+n:'yazı alanı'}
+function inkInit(){document.querySelectorAll('canvas.ink').forEach(c=>{const id=c.dataset.id,r=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;c.width=Math.max(1,Math.round(r.width*dpr));c.height=Math.max(1,Math.round(r.height*dpr));const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.lineCap='round';x.lineJoin='round';
+const draw=()=>{const R=c.getBoundingClientRect();x.clearRect(0,0,R.width,R.height);(INK[id]||[]).forEach(s=>{x.strokeStyle=s.c;x.lineWidth=s.w;x.beginPath();s.p.forEach(([a,b],k)=>k?x.lineTo(a*R.width,b*R.height):x.moveTo(a*R.width,b*R.height));if(s.p.length==1)x.lineTo(s.p[0][0]*R.width+.1,s.p[0][1]*R.height);x.stroke()})};draw();
+c.style.touchAction=PENM&&!FING?'pan-y':'none';let cur=null;
+const pt=e=>{const R=c.getBoundingClientRect();return[Math.min(1,Math.max(0,(e.clientX-R.left)/R.width)),Math.min(1,Math.max(0,(e.clientY-R.top)/R.height))]};
+c.onpointerdown=e=>{if(e.pointerType=='pen'&&!PENM){PENM=true;document.querySelectorAll('canvas.ink').forEach(k=>{k.style.touchAction=FING?'none':'pan-y'})}
+if(e.pointerType=='touch'&&PENM&&!FING)return;e.preventDefault();try{c.setPointerCapture(e.pointerId)}catch(_){}
+cur={c:INC,w:e.pointerType=='pen'?1.8+2.4*(e.pressure||.5):2.8,p:[pt(e)]};(INK[id]=INK[id]||[]).push(cur);LASTC=id;draw()};
+c.onpointermove=e=>{if(!cur)return;e.preventDefault();cur.p.push(pt(e));draw()};
+const up=()=>{if(cur){cur=null;sv('ink',INK)}};c.onpointerup=up;c.onpointercancel=up})}
+function inkClr(id){delete INK[id];sv('ink',INK);inkInit()}
+function inkUndo(){const a=INK[LASTC];if(a&&a.length){a.pop();sv('ink',INK);inkInit()}}
+function wsm(id,v){INKM[id]=v;sv('inkm',INKM);go()}
+function wsClear(){if(!confirm('Bu sayfadaki tüm yazılar silinsin mi?'))return;const p='ws:'+WSV+':';Object.keys(INK).forEach(k=>{if(k.startsWith(p))delete INK[k]});Object.keys(INKM).forEach(k=>{if(k.startsWith(p))delete INKM[k]});sv('ink',INK);sv('inkm',INKM);go()}
+function vWs(){
+if(WSV==null)return `<p class="mut">Öğretmenin çalışma sayfaları. Tabletten kalemle boşlukları doldur. Yazdıkların bu cihazda saklanır.</p>`+WS.map((s,i)=>`<button class="opt" onclick="WSV=${i};go()">${esc(s.t)} <small class="mut">· ${wprog(i)}</small></button>`).join('');
+const s=WS[WSV],rows=wrows(s),col=(c,l)=>`<button class="dot" style="background:${c};${INC==c?'outline:3px solid var(--mg)':''}" aria-label="${l}" onclick="INC='${c}';go()"></button>`;
+let b=`<div class="row"><button onclick="WSV=null;go()">← Sayfalar</button></div><h3>${esc(s.t)}</h3><p>${esc(s.d)}</p>${s.b?`<div class="fb">${esc(s.b)}</div>`:''}
+<div class="row wtool">${col('#1a3fbf','Mavi')}${col('#111111','Siyah')}${col('#c0392b','Kırmızı')}<button onclick="inkUndo()">Geri al</button><button onclick="FING=!FING;go()">Parmakla yaz: ${FING?'Açık':'Kapalı'}</button><button onclick="WSA=!WSA;go()">${WSA?'Cevapları gizle':'Cevapları göster'}</button><button onclick="wsClear()">Sayfayı temizle</button></div>`;
+rows.forEach((f,j)=>{const id=wid(WSV,j),[bf,af,h,k]=f,key=(k||'').trim(),m=INKM[id];
+const x=`<button class="clr" aria-label="Sil" onclick="inkClr('${id}')">✕</button>`;
+if(s.m=='i')b+=`<div class="wsr"><span>${j+1}. ${esc(bf)}</span><canvas class="ink in" data-id="${id}"></canvas>${x}<span>${esc(af)}</span>${h?` <i class="mut">(${esc(h)})</i>`:''}</div>`;
+else if(s.m=='l')b+=`<div class="wsr col"><span>${/^\d\./.test(bf)?'':(j+1)+'. '}${esc(bf)}</span><div class="cw"><canvas class="ink" style="height:${s.h}px" data-id="${id}"></canvas>${x}</div></div>`;
+else b+=`<div class="wsr col"><span>${esc(bf)}</span><div class="cw"><canvas class="ink" style="height:${s.h}px" data-id="${id}"></canvas>${x}</div></div>`;
+if(WSA&&key){const full=s.m=='i'?(bf+(bf.endsWith('’')||!bf?'':' ')+key+' '+af).trim():key;b+=`<div class="ans">✓ <b>${esc(full)}</b> <button class="mk ${m==1?'on':''}" onclick="wsm('${id}',1)">Doğru</button><button class="mk ${m==0?'bad':''}" onclick="wsm('${id}',0)">Yanlış</button></div>`}});
+return b}
+window.addEventListener('resize',()=>{if(tab=='ws')inkInit()});
+
 let PC=true;
 let PX=false,XQ=null,xi=0,xs=0,xa=null,xw=[];
 const inf=v=>v.replace(/^(se |s’)/,'').replace(/ \(.*\)$/,'');
