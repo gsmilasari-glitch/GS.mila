@@ -161,7 +161,7 @@ function vTopics(){const d=draft||{name:'',vocab:[],gaps:[]};return `<p class="m
 <button class="p" onclick="addT()">Konuyu yayınla</button><h3>Yayındaki konular</h3>`+
 (topics.length?topics.map((t,i)=>`<div class="tp"><span><b>${esc(t.name)}</b><br><small class="mut">${t.vocab.length} kelime, ${t.gaps.length} boşluk cümlesi</small></span><button onclick="if(confirm('Bu konu silinsin mi?'))delT(${i})">Sil</button></div>`).join(''):'<p class="mut">Henüz konu yok. Yukarıdan ilk konunu ekle.</p>')}
 
-const TABS=[['cards','Kartlar',vCards],['quiz','Quiz',vQuiz],['read','Okuma',vRead],['listen','Dinle ve Konuş',vListen],['etre','Passé composé',vEtre],['zam','Zamanlar',vZam],['oral','Sözlü',vOral],['yazili','1. Yazılı',vZ],['ws','Çalışma Sayfaları',vWs],['tr','Çeviri',vTr],['topics','Yönetim',vTopics]];
+const TABS=[['cards','Kartlar',vCards],['quiz','Quiz',vQuiz],['read','Okuma',vRead],['listen','Dinle ve Konuş',vListen],['etre','Passé composé',vEtre],['oral','Sözlü',vOral],['yazili','1. Yazılı',vZ],['ws','Çalışma Sayfaları',vWs],['tr','Çeviri',vTr],['topics','Yönetim',vTopics]];
 function go(){if(!AUTH&&!ADMIN){$('nav').innerHTML='';$('#v').innerHTML=vLogin();return}$('nav').innerHTML=TABS.filter(t=>t[0]!='topics'||ADMIN).map(t=>`<button class="${t[0]==tab?'on':''}" onclick="tab='${t[0]}';go()">${t[1]}</button>`).join('');$('#v').innerHTML=TABS.find(t=>t[0]==tab)[2]();document.body.classList.toggle('wide',tab=='ws');if(tab=='ws')inkInit()}
 const MAIN=$('main').outerHTML;
 const PROMPT='Bu, bir Fransızca A2 ders defterinin fotoğrafı. Yalnızca fotoğrafta okuyabildiğin içerikten çalış; okunmayanı atla, uydurma. Yalnızca JSON döndür: {"name":"konu adı","vocab":[{"fr":"","tr":""}],"gaps":[{"q":"içinde ___ bulunan Fransızca cümle","a":"boşluğa gelen kelime"}]}. vocab: defterdeki kelimeler ve Türkçe karşılıkları (karşılık yazılı değilse Türkçesini sen yaz). gaps: defterdeki cümle veya örneklerden en fazla 8 boşluk doldurma; cevap tek kelime ya da kısa ifade olsun.';
@@ -410,11 +410,11 @@ const SB=[
 const rn=n=>Math.floor(Math.random()*n);
 let YM=ld('ym',{}),WR=ld('wr',{}),YQ=null,yi=0,ys=0,ya=null,YK=['',''],YP=0,YS={},YOK=false,ZB=null,ZP=[],ZH=false,ZR=null,ZW=null,ZX='',ZC=null,ZV=false;
 const lvl=k=>YM[k]||0,nzf=s=>s.toLowerCase().replace(/'/g,'’').replace(/\s+/g,' ').trim(),noacc=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-function tcheck(q,u){const f=(s,lx)=>{let x=nzf(s).replace(/\(e\)|\(s\)/g,'');if(lx){const r=x.split(' ');r[r.length-1]=r[r.length-1].replace(/(?<=[éiu])(es|e|s)$/,'');x=r.join(' ')}return noacc(x)};return f(q.a,q.lax)==f(u,q.lax)}
+function tcheck(q,u){const f=(s,lx)=>{let x=nzf(s).replace(/\(e\)|\(s\)/g,'');if(lx){const r=x.split(' ');r[r.length-1]=r[r.length-1].replace(/(?<=[éiu])(es|e|s)$/,'');x=r.join(' ')}return q.strict?x:noacc(x)};return f(q.a,q.lax)==f(u,q.lax)}
 function yq(inf,t,i){const v=VB.find(x=>x.inf==inf);return{y:'t',key:'y:'+inf+':'+t,p:SJ[i]+' · '+inf+' ('+v.tr+') · '+TN[t],a:fm(v,t,i,0),lax:t=='c'&&v.ax!='a',spec:{t:'y',inf,tn:t,i}}}
 function sq(n){const[tr,fr,t,ex]=SB[n],punct=(fr.match(/\s?[.!?]$/)||[''])[0],words=fr.replace(/\s?[.!?]$/,'').split(' ');return{y:'b',key:'s:'+n,p:tr,a:fr,words,punct,t,tiles:sh([...words,...ex.split(' ')]).map((w,k)=>({w,k})),spec:{t:'s',n}}}
 const pq=w=>({y:'p',key:'p:'+w.fr,p:w.fr,a:w.fr,spec:{t:'p',fr:w.fr}});
-function zfrom(s){return s.t=='w'?wq(WD.find(x=>x.fr==s.fr),s.m):s.t=='v'?vq(s.inf,s.tn,s.i):s.t=='y'?yq(s.inf,s.tn,s.i):s.t=='s'?sq(s.n):pq(WD.find(x=>x.fr==s.fr))}
+function zfrom(s){return s.t=='w'?wq(WD.find(x=>x.fr==s.fr),s.m):s.t=='v'?vq(s.inf,s.tn,s.i):s.t=='y'?yq(s.inf,s.tn,s.i):s.t=='s'?sq(s.n):s.t=='d'?dq(DMN.find(x=>x.n==s.n)):s.t=='r'?dgq(DMN.find(x=>x.n==s.n)):s.t=='q'?ppq(s.i):s.t=='g'?agq(s.i):s.t=='z'?ppt(s.i):pq(WD.find(x=>x.fr==s.fr))}
 function mock(){const T=()=>'pcf'[rn(3)],S=(a,o)=>a.map(q=>({...q,...o}));
 return[...S(sh(WD).slice(0,10).map(w=>wq(w,rn(2)?'a':'b')),{pts:2,sec:'Kelime'}),...S(sh(VB).slice(0,5).map(v=>vq(v.inf,T(),rn(6))),{pts:2,sec:'Fiil seç'}),...S(sh(VB).slice(0,10).map(v=>yq(v.inf,T(),rn(6))),{pts:3,sec:'Fiil yaz'}),...S(sh(SB.map((_,n)=>n)).slice(0,5).map(sq),{pts:8,sec:'Cümle'})]}
 function zstart(kind,mode){YK=[kind,mode];ZH=false;ZB=null;ZR=null;const low=(a,k)=>sh(a).sort((x,y)=>lvl(k(x))-lvl(k(y)));let L=[];
@@ -423,6 +423,11 @@ else if(kind=='v')L=low(VB,v=>'v:'+v.inf+':'+mode).slice(0,10).map(v=>vq(v.inf,m
 else if(kind=='y')L=low(VB,v=>'y:'+v.inf+':'+mode).slice(0,10).map(v=>yq(v.inf,mode,rn(6)));
 else if(kind=='s')L=low(SB.map((_,n)=>n).filter(n=>SB[n][2]==mode),n=>'s:'+n).slice(0,8).map(sq);
 else if(kind=='p')L=low(WD,x=>'p:'+x.fr).slice(0,10).map(pq);
+else if(kind=='d')L=low(DMN,x=>'d:'+x.n).slice(0,10).map(dq);
+else if(kind=='r')L=low(DMN,x=>'dg:'+x.n).slice(0,10).map(dgq);
+else if(kind=='q')L=low(PPV.map((_,i)=>i),i=>'pp:'+PPV[i].inf).slice(0,10).map(ppq);
+else if(kind=='g')L=low(AGR.map((_,i)=>i),i=>'ag:'+i).slice(0,10).map(agq);
+else if(kind=='z')L=low(PPV.map((_,i)=>i),i=>'pt:'+PPV[i].inf).slice(0,10).map(ppt);
 else if(kind=='x')L=sh(Object.values(WR)).slice(0,10).map(zfrom);
 else L=mock();
 YQ=L;yi=0;ys=0;ya=null;YP=0;YS={};go()}
@@ -445,11 +450,13 @@ const zb=(l,a)=>`<button class="p" onclick="${a}">${l}</button>`;
 function zhome(){const r=rdy(),d=Math.max(0,Math.ceil((new Date(2026,10,2)-new Date())/864e5)),n=Object.keys(WR).length;
 return `<div class="fc st"><div class="big">%${r.t}</div><small>Hazırlık · 2 Kasım’a ${d} gün</small></div>`+ybar('Kelime',r.w)+ybar('Fiil çekimi',r.f)+ybar('Cümle kurma',r.s)+ybar('Telaffuz',r.p)+
 `<p class="mut">Her soru üst üste iki kez doğru bilinince “biliyor” sayılır, yanlış cevap sıfırlar. Yüzde: kelime %25, fiil %35, cümle %30, telaffuz %10. Yazılı üretim yüzdeye girmez.</p>
-<h3>Kelime</h3><div class="row">${zb('Fransızca → Türkçe',"zstart('w','a')")}${zb('Türkçe → Fransızca',"zstart('w','b')")}${zb('Telaffuz',"zstart('p','')")}</div>
+<h3>Kelime</h3><div class="row">${zb('Fransızca → Türkçe',"zstart('w','a')")}${zb('Türkçe → Fransızca',"zstart('w','b')")}${zb('Telaffuz',"zstart('p','')")}${zb('Kelime kartları',"KC=sh(WD).sort((a,b)=>(KN[a.fr]||0)-(KN[b.fr]||0));ki=0;kf=false;go()")}</div>
 <h3>Fiil çekimi: seç</h3><div class="row">${zb('Présent',"zstart('v','p')")}${zb('Passé composé',"zstart('v','c')")}${zb('Futur proche',"zstart('v','f')")}</div>
 <h3>Fiil çekimi: yaz</h3><div class="row">${zb('Présent',"zstart('y','p')")}${zb('Passé composé',"zstart('y','c')")}${zb('Futur proche',"zstart('y','f')")}</div>
 <h3>Cümle kurma</h3><div class="row">${zb('Şimdiki zaman',"zstart('s','p')")}${zb('Geçmiş zaman',"zstart('s','c')")}${zb('Gelecek zaman',"zstart('s','f')")}</div>
 <h3>Yazılı üretim</h3><div class="row">${zb('Konu seç ve yaz',"ZW='menu';go()")}</div>
+<h3>Ce / cet / cette / ces</h3><div class="row">${zb('Anlatım',"ZI='dm';go()")}${zb('1) Eril mi, dişil mi, çoğul mu?',"zstart('r','')")}${zb('2) Hangisi gelir?',"zstart('d','')")}</div>
+<h3>Participe passé sonları</h3><div class="row">${zb('Anlatım',"ZI='pp';go()")}${zb('Participe seç',"zstart('q','')")}${zb('Uyum seç (e, s)',"zstart('g','')")}${zb('Participe yaz',"zstart('z','')")}</div>
 <h3>Tekrar ve deneme</h3><div class="row">${n?`<button onclick="zstart('x','')">Yanlışlarım (${n})</button>`:''}<button onclick="zstart('m','')">Deneme sınavı (100 puan)</button></div>`}
 function zq(){const q=YQ[yi],y=q.y||'m',d=ya!=null;
 let b=`<div class="row"><button onclick="YQ=null;ZB=null;go()">← Ana menü</button></div><p class="mut">${yi+1}/${YQ.length}${q.sec?' · '+q.sec:''}</p><div class="fc st"><div class="big" style="font-size:1.25rem">${esc(q.p)}</div></div>`;
@@ -459,7 +466,7 @@ else if(y=='b'){if(!ZB){ZB=[...q.tiles];ZP=[]}
 b+=`<div class="fc st" style="text-align:left;min-height:56px">${ZP.length?esc(ZP.map(x=>x.w).join(' ')+(d?q.punct:'')):'<span class="mut">Kelimelere dokunarak cümleyi kur.</span>'}</div>`;
 if(!d)b+=ZB.map(x=>`<button style="margin:3px" onclick="zpl(${x.k})">${esc(x.w)}</button>`).join('')+`<div class="row"><button onclick="zundo()">Geri al</button><button onclick="zclr()">Temizle</button><button onclick="ZH=!ZH;go()">Zaman ipucu</button><button class="p" onclick="zchk()">Kontrol et</button></div>`+(ZH?`<p class="mut">Zaman: ${TN[q.t]}</p>`:'')}
 else b+=`<div class="row"><button class="p" onclick="zsay()">Söyle</button></div>`+(ZR?(ZR.err?`<div class="fb">${esc(ZR.err)}</div>`:`<div class="fb"><b>%${ZR.p}</b> · ${ZR.p>=80?'Doğru.':'Tekrar söyleyebilirsin.'}<br>Duyulan: ${esc(ZR.said)}</div>`):'');
-if(d&&y!='p')b+=`<div class="fb">${YOK?'Doğru.':'Yanlış.'} Doğrusu: <b>${esc(y=='b'?q.words.join(' ')+q.punct:q.a)}</b></div>`;
+if(d&&y!='p')b+=`<div class="fb">${YOK?'Doğru.':'Yanlış.'} Doğrusu: <b>${esc(y=='b'?q.words.join(' ')+q.punct:q.a)}</b>${q.e?'<br>'+esc(q.e):''}</div>`;
 if(d)b+=`<button class="p" onclick="znext()">Sonraki</button>`;
 return b}
 function zres(){const m=YK[0]=='m',w=Object.entries(YS).sort((a,b)=>a[1][0]/a[1][1]-b[1][0]/b[1][1])[0];
@@ -481,7 +488,7 @@ function vWrite(){
 if(ZW=='menu')return `<div class="row"><button onclick="ZW=null;go()">← Ana menü</button></div><p class="mut">Konuyu seç, kendi cümlelerinle yaz. Kontrol listesi yaklaşık bir yardımcıdır, öğretmenin notu değildir.</p>`+WT.map(([i])=>`<button class="opt" onclick="ZW=${i};ZX='';ZC=null;ZV=false;go()">${i>=9?'Sözlü 2':'Sözlü 1'} · ${esc(ORAL[i].t)}</button>`).join('');
 const o=ORAL[ZW],t=WT.find(x=>x[0]==ZW)[1];
 return `<div class="row"><button onclick="ZW='menu';go()">← Konular</button></div><h3>${esc(o.t)}</h3><div class="fc st"><div class="big" style="font-size:1.1rem">${esc(o.i[0].q)}</div></div><p class="mut">Hedef zaman: ${TN[t]}</p><textarea id="zt" rows="9" placeholder="Fransızca yaz...">${esc(ZX)}</textarea><div class="row"><button class="p" onclick="zwc()">Kontrol et</button><button onclick="ZX=$('#zt').value;ZV=!ZV;go()">${ZV?'Örneği gizle':'Örnek metni göster'}</button></div>`+(ZC?`<div class="fb">${ZC.map(x=>(x[0]?'✓ ':'✗ ')+esc(x[1])).join('<br>')}</div>`:'')+(ZV?`<div class="fc st" style="text-align:left">${esc(o.i[0].a)}</div><p class="mut">Örnek tek doğru değildir, kendi cümlelerin de kabul edilir.</p>`:'')}
-function vZ(){if(ZW!=null)return vWrite();if(!YQ)return zhome();if(!YQ.length)return '<p>Bu çalışmada soru yok.</p><button onclick="YQ=null;go()">Geri</button>';if(yi>=YQ.length)return zres();return zq()}
+function vZ(){if(KC)return vKart();if(ZI)return vInfo();if(ZW!=null)return vWrite();if(!YQ)return zhome();if(!YQ.length)return '<p>Bu çalışmada soru yok.</p><button onclick="YQ=null;go()">Geri</button>';if(yi>=YQ.length)return zres();return zq()}
 const WS=[
 {t:'1. Le présent',m:'i',d:'Complète en conjuguant les verbes entre parenthèses au présent. Fais attention aux sujets et aux accords !',r:`Je|mes devoirs après l’école.|faire|fais
 Tu|avec nous à la plage.|venir|viens
@@ -627,6 +634,107 @@ if(WSA&&key){const full=s.m=='i'?(bf+(bf.endsWith('’')||!bf?'':' ')+key+' '+af
 return b}
 window.addEventListener('resize',()=>{if(tab=='ws')inkInit()});
 
+const DMN=`collège|ortaokul|ce
+professeur|öğretmen|ce
+livre|kitap|ce
+gymnase|spor salonu|ce
+cours|ders|ce
+musée|müze|ce
+parc|park|ce
+sac|çanta|ce
+cahier|defter|ce
+bureau|masa, ofis|ce
+ordinateur|bilgisayar|cet
+atelier|atölye|cet
+emploi du temps|ders programı|cet
+homme|adam|cet
+hôtel|otel|cet
+élève|öğrenci|cet
+appartement|daire|cet
+été|yaz|cet
+école|okul|cette
+bibliothèque|kütüphane|cette
+cour de récréation|okul bahçesi|cette
+histoire|hikâye, tarih|cette
+cantine|okul yemekhanesi|cette
+salle|oda, salon|cette
+classe|sınıf|cette
+plage|plaj|cette
+montagne|dağ|cette
+valise|bavul|cette
+piscine|havuz|cette
+élèves|öğrenciler|ces
+salles de classe|sınıflar|ces
+livres|kitaplar|ces
+exercices|alıştırmalar|ces
+vacances|tatil|ces
+amis|arkadaşlar|ces
+musées|müzeler|ces
+parcs d’attractions|lunaparklar|ces
+chien|köpek|ce
+abricot|kayısı|cet
+fille|kız çocuğu|cette
+enfants|çocuklar|ces
+parents|anne baba|ces`.split('\n').map(l=>{const[n,tr,d]=l.split('|');return{n,tr,d}});
+const DME={ce:'Eril, tekil ve ünsüzle başlıyor: ce.',cet:'Eril, tekil ve ünlü ya da sessiz h ile başlıyor: cet.',cette:'Dişil ve tekil: cette.',ces:'Çoğul (eril de dişil de): ces.'};
+const dq=x=>({key:'d:'+x.n,p:'___ '+x.n+' ('+x.tr+')',o:['ce','cet','cette','ces'],a:x.d,e:DME[x.d],spec:{t:'d',n:x.n}});
+const dgq=x=>({key:'dg:'+x.n,p:x.n+' ('+x.tr+') → eril mi, dişil mi, çoğul mu?',o:['eril','dişil','çoğul'],a:x.d=='cette'?'dişil':x.d=='ces'?'çoğul':'eril',e:'ce / cet → eril (masculin), cette → dişil (féminin), ces → çoğul (pluriel). Eril ise: ünsüzle başlıyorsa ce, ünlü ya da sessiz h ile başlıyorsa cet.',spec:{t:'r',n:x.n}});
+const PPV=`manger|yemek|mangé|mangi
+visiter|gezmek|visité|visiti
+regarder|bakmak, izlemek|regardé|regardu
+arriver|varmak|arrivé|arrivi
+rester|kalmak|resté|resti
+passer|geçirmek|passé|passu
+aller|gitmek|allé|alli
+se réveiller|uyanmak|réveillé|réveilli
+se doucher|duş almak|douché|douchu
+s’habiller|giyinmek|habillé|habilli
+se dépêcher|acele etmek|dépêché|dépêchi
+finir|bitirmek|fini|finé
+partir|yola çıkmak|parti|parté
+sortir|dışarı çıkmak|sorti|sorté
+dormir|uyumak|dormi|dormé
+choisir|seçmek|choisi|choisé
+attendre|beklemek|attendu|attendé
+descendre|inmek|descendu|descendé
+répondre|cevap vermek|répondu|répondé
+faire|yapmak|fait|faisé
+prendre|almak|pris|prendu
+être|olmak|été|étu
+avoir|sahip olmak|eu|avé
+voir|görmek|vu|voyé
+pouvoir|-ebilmek|pu|pouvé
+vouloir|istemek|voulu|voulé
+venir|gelmek|venu|veni
+lire|okumak|lu|lisé
+mettre|koymak|mis|mettu`.split('\n').map(l=>{const[inf,tr,pp,w]=l.split('|');return{inf,tr,pp,w,bare:inf.replace(/^(se |s’)/,'')}});
+const AGR=[['Marie','est','aller','allée'],['Paul','est','arriver','arrivé'],['Les filles','sont','partir','parties'],['Mes amis','sont','rester','restés'],['Léa','est','venir','venue'],['Sophie et Emma','sont','aller','allées'],['Julie','s’est','réveiller','réveillée'],['Les garçons','se sont','doucher','douchés'],['Elles','se sont','dépêcher','dépêchées'],['Lucas','est','partir','parti'],['Ma sœur','est','arriver','arrivée'],['Mes parents','sont','venir','venus'],['Ali et Mila','sont','aller','allés'],['Emma','est','rester','restée'],['Marie','a','visiter','visité'],['Les filles','ont','manger','mangé'],['Mes amis','ont','finir','fini'],['Elle','a','regarder','regardé'],['Paul et Lucas','sont','partir','partis'],['Les filles','sont','arriver','arrivées'],['Sophie','est','rester','restée'],['Emma','s’est','réveiller','réveillée'],['Nous','avons','faire','fait'],['Vous','avez','visiter','visité'],['Ils','ont','vouloir','voulu'],['Vous','avez','voir','vu'],['Nous','avons','passer','passé']];
+const ppq=i=>{const v=PPV[i];return{key:'pp:'+v.inf,p:v.bare+' ('+v.tr+') → participe passé?',o:sh([v.pp,v.bare,v.w]),a:v.pp,e:'Yardımcı fiilden sonra fiil mastar kalmaz: '+v.bare+' → '+v.pp,spec:{t:'q',i}}};
+const ppt=i=>{const v=PPV[i];return{y:'t',key:'pt:'+v.inf,p:v.bare+' ('+v.tr+') → participe passé yaz',a:v.pp,strict:1,spec:{t:'z',i}}};
+const agq=i=>{const[s,ax,inf,ans]=AGR[i],b=ans.replace(/(?<=[éiu])(es|e|s)$/,''),av=['a','ont'].includes(ax);return{key:'ag:'+i,p:s+' '+ax+' ___ ('+inf+')',o:sh([b,b+'e',b+'s',b+'es']),a:ans,e:av?'Avoir ile participe değişmez.':'Être ile participe özneye uyar: dişil +e, çoğul +s, dişil çoğul +es (karışık grup eril çoğul sayılır).',spec:{t:'g',i}}};
+let KC=null,ki=0,kf=false,KN=ld('kn',{}),ZI=null;
+function kmk(v){KN[KC[ki%KC.length].fr]=v;sv('kn',KN);ki++;kf=false;go()}
+function vKart(){const L=KC,c=L[ki%L.length],n=L.filter(x=>KN[x.fr]).length;
+return `<div class="row"><button onclick="KC=null;go()">← Ana menü</button></div><p class="mut">${ki%L.length+1}/${L.length} · Bildiklerim: ${n}</p><div class="fc" onclick="kf=!kf;go()"><div class="big">${esc(kf?c.tr:c.fr)}</div><small>${kf?'Türkçesi':'Dokun: anlamını gör'}</small></div><div class="row"><button onclick="kmk(0)">Tekrar</button><button class="p" onclick="kmk(1)">Biliyorum</button></div>`}
+function vInfo(){const back=`<div class="row"><button onclick="ZI=null;go()">← Ana menü</button></div>`;
+if(ZI=='dm')return back+`<h3>Ce / cet / cette / ces</h3><p>“Bu, şu” anlamına gelir ve <b>isimden önce</b> gelir. İsme uyar.</p>
+<div class="fb"><b>ce</b> (masculin): eril + tekil + ünsüzle (sessiz harf) başlar<br>ce chien, ce collège, ce livre</div>
+<div class="fb"><b>cet</b> (masculin): eril + tekil + ünlü (a, e, i, o, u, é) ya da sessiz h ile başlar<br>cet abricot, cet hôtel, cet ordinateur, cet homme</div>
+<div class="fb"><b>cette</b> (féminin): dişil + tekil<br>cette école, cette fille, cette histoire</div>
+<div class="fb"><b>ces</b> (pluriel): çoğul (eril de dişil de)<br>ces enfants, ces parents, ces livres</div>
+<h3>Hangisini seçeceğim?</h3><p>1) İsim çoğul mu? → <b>ces</b><br>2) Dişil mi? → <b>cette</b><br>3) Eril ise ilk harf ünlü ya da h mi? → <b>cet</b>, değilse <b>ce</b></p>
+<p class="mut">Karıştırma: <b>ces</b> = bu (çoğul), <b>ses</b> = onun, onların (çoğul).</p>${zb('Alıştırmaya geç',"ZI=null;zstart('d','')")}`;
+return back+`<h3>Participe passé sonları</h3><p>Passé composé = <b>avoir ya da être</b> (şimdiki zaman) + <b>participe passé</b>. Zamanı doğru kurmak yetmez: yardımcı fiilden sonra fiil <b>mastar kalmaz</b>, sonu değişir.</p>
+<div class="fb">✗ j’ai manger → ✓ <b>j’ai mangé</b><br>✗ je suis aller → ✓ <b>je suis allé(e)</b></div>
+<h3>Sonlar</h3>
+<div class="fb"><b>-er → -é</b>: manger → mangé, visiter → visité, aller → allé, arriver → arrivé, rester → resté, passer → passé</div>
+<div class="fb"><b>-ir → -i</b>: finir → fini, partir → parti, sortir → sorti, dormir → dormi</div>
+<div class="fb"><b>-re → -u</b>: attendre → attendu, descendre → descendu, répondre → répondu</div>
+<div class="fb"><b>Özel olanlar</b>: faire → fait, prendre → pris, être → été, avoir → eu, voir → vu, pouvoir → pu, vouloir → voulu, venir → venu, lire → lu, mettre → mis</div>
+<div class="fb"><b>Dönüşlü fiiller</b>: se réveiller → je me suis réveillé(e), se doucher → je me suis douché(e)</div>
+<h3>Uyum (accord)</h3><p><b>Avoir</b> ile participe değişmez: elle a mangé.<br><b>Être</b> ile özneye uyar: dişil <b>+e</b> (elle est allée), çoğul <b>+s</b> (ils sont allés), dişil çoğul <b>+es</b> (elles sont allées).</p>
+<h3>Kontrol sırası</h3><p>1) Avoir mı, être mi?<br>2) Sonu doğru mu? (é, i, u ya da özel)<br>3) Être varsa özneye uyum (e, s)</p><div class="row">${zb('Participe seç',"ZI=null;zstart('q','')")}${zb('Uyum seç',"ZI=null;zstart('g','')")}${zb('Participe yaz',"ZI=null;zstart('z','')")}</div>`}
+
 let PC=true;
 let PX=false,XQ=null,xi=0,xs=0,xa=null,xw=[];
 const inf=v=>v.replace(/^(se |s’)/,'').replace(/ \(.*\)$/,'');
@@ -710,89 +818,6 @@ if(r&&r.err)b+=`<div class="fb">${esc(r.err)}</div>`;
 else if(r)b+=`<div class="fb"><b>Doğruluk: %${r.p}</b>${sc?` · en iyi %${sc.b}`:''}</div><div class="fc st" style="text-align:left">${r.words.map(w=>w[1]?esc(w[0]):`<b style="color:var(--bad)">${esc(w[0])}</b>`).join(' ')}</div><p class="mut">Kırmızı kelimeler söylenmedi ya da farklı anlaşıldı. Mikrofon yanlış duyabilir; bu bir çalışma göstergesidir.</p>`;
 if(s.i.length>1)b+=`<div class="row">${OK>0?'<button onclick="OK--;OR=null;go()">Önceki</button>':''}${OK<s.i.length-1?'<button class="p" onclick="OK++;OR=null;go()">Sonraki soru</button>':''}</div>`;
 return b}
-/* ===== ZAMANLAR KONU ANLATIMLARI ===== */
-let ZM='g',ZQ={p:null,f:null},zqi={p:0,f:0},zqs={p:0,f:0},zqa={p:null,f:null},YBv='aller',YBs=0,YBQ=null,YBa=null,YBok=false,YBsc=0,YBn=0;
-const ztb=(h,r)=>`<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;background:var(--card)"><tr>${h.map(x=>`<th style="border:1.5px solid var(--line);padding:6px 8px;text-align:left;color:var(--ac)">${esc(x)}</th>`).join('')}</tr>${r.map(a=>`<tr>${a.map(x=>`<td style="border:1.5px solid var(--line);padding:6px 8px">${esc(x)}</td>`).join('')}</tr>`).join('')}</table></div>`;
-const AVF=['ai','as','a','avons','avez','ont'];
-const zp=(inf)=>{const v=VB.find(x=>x.inf==inf);return SJ.map((j,i)=>sj(i,v.p[i]))};
-const ZMEN=[['g','Geçmiş zaman'],['p','Geniş zaman'],['f','Gelecek zaman'],['y','Yan yana çalış']];
-const ZP_Q=[
-['Chaque matin, je ___ à sept heures. (se lever)',['me lève','me suis levé','vais me lever'],0],
-['Tu ___ à la plage le week-end. (aller)',['vas','es allé','allez'],0],
-['Nous ___ du shopping. (faire)',['faisons','faisez','fait'],0],
-['Ils ___ le train tous les jours. (prendre)',['prennent','prend','prenons'],0],
-['Vous ___ venir avec nous ? (pouvoir)',['pouvez','pouvons','peuvent'],0],
-['Elle ___ heureuse. (être)',['est','a','es'],0],
-['Je ___ français. (parler)',['parle','parles','parlons'],0],
-['Nous ___ à la cantine. (manger)',['mangeons','mangons','mangez'],0],
-['Le soir, tu te ___. (se doucher)',['douches','douche','douchez'],0],
-['Elles ___ du sport le samedi. (faire)',['font','faisent','fait'],0]];
-const ZF_Q=[
-['Demain, je ___ à l’école.',['vais aller','vais allé','vais va'],0],
-['Nous ___ visiter Paris.',['allons','allez','vont'],0],
-['Tu ___ venir avec nous ?',['vas','va','vais'],0],
-['Ils ___ partir demain.',['vont','allons','va'],0],
-['Ce soir, je vais ___ tôt. (se coucher)',['me coucher','me couché','se coucher'],0],
-['Elle ne ___ pas manger.',['va','vas','vais'],0],
-['Vous ___ prendre le train.',['allez','allons','vont'],0],
-['Demain, nous ___ faire du shopping.',['allons','allez','vont'],0],
-['Dimanche prochain, je vais ___ ma grand-mère. (voir)',['voir','vu','vois'],0],
-['Demain, elle va se ___ à sept heures. (réveiller)',['réveiller','réveille','réveillée'],0]];
-function zmq(k){const a=k=='p'?ZP_Q:ZF_Q;ZQ[k]=sh(a).map(q=>{const o=sh(q[1]);return{p:q[0],o,a:q[1][q[2]]}});zqi[k]=0;zqs[k]=0;zqa[k]=null;go()}
-function zmp(k,i){const q=ZQ[k][zqi[k]];zqa[k]=i;if(q.o[i]==q.a)zqs[k]++;go()}
-function zmquiz(k){const L=ZQ[k];if(!L)return `<h3>10 soru</h3><button class="p" onclick="zmq('${k}')">Alıştırmaya başla</button>`;
-const i=zqi[k];if(i>=L.length)return `<div class="fc st"><div class="big">${zqs[k]}/${L.length}</div></div><button class="p" onclick="zmq('${k}')">Tekrar çöz</button>`;
-const q=L[i],a=zqa[k],d=a!=null;
-return `<h3>Alıştırma</h3><p class="mut">${i+1}/${L.length}</p><div class="fc st"><div class="big" style="font-size:1.25rem">${esc(q.p)}</div></div>`+q.o.map((o,x)=>`<button class="opt ${d?(o==q.a?'ok':x==a?'bad':''):''}" ${d?'disabled':''} onclick="zmp('${k}',${x})">${esc(o)}</button>`).join('')+(d?`<div class="fb">${q.o[a]==q.a?'Doğru.':'Yanlış. Doğrusu: <b>'+esc(q.a)+'</b>'}</div><button class="p" onclick="zqi['${k}']++;zqa['${k}']=null;go()">Sonraki</button>`:'')}
-function vZPast(){const E=EA.filter(x=>x.a=='e');
-return vKonu().replace(/<button class="p" onclick="PC=false;go\(\)">Alıştırmaya geç<\/button>/,'')+
-`<h3>Être ile kurulan ${E.length} fiil ve Türkçeleri</h3><p class="mut">Mila için dişil biçimle yazıldı. Dinle düğmesine bas, sonra tekrar et.</p>`+
-E.map(x=>{const f=x.ex.replace('(e)','e');return `<div class="tp"><span><b>${esc(x.v)}</b> · ${esc(x.tr)}<br><small class="mut">${esc(f)}</small></span><button onclick="say('${f.replace(/'/g,"\\'").replace(/’/g,"\\’")}')">Dinle</button></div>`}).join('')+
-`<h3>Alıştırma</h3><p class="mut">Passé composé alıştırmaları için “Passé composé” sekmesini kullan.</p>`}
-function vZPres(){
-const hd=['','parler','être','avoir','aller','faire'],rows=SJ.map((j,i)=>[j,zp('être')[i]&&sj(i,['parle','parles','parle','parlons','parlez','parlent'][i]),zp('être')[i],sj(i,AVF[i]),zp('aller')[i],zp('faire')[i]]);
-const rows2=SJ.map((j,i)=>[j,zp('prendre')[i],zp('venir')[i],zp('pouvoir')[i],zp('vouloir')[i],zp('se réveiller')[i]]);
-return `<h3>Geniş zaman (présent) ne zaman kullanılır?</h3><p>Alışkanlıklar, şu an olanlar ve genel bilgiler için: <b>Chaque matin, je me lève à sept heures.</b> (Her sabah yediyi kalkarım.)</p>
-<h3>-er fiilleri</h3><div class="fb"><b>Kök + e, es, e, ons, ez, ent</b><br>parler → je parle, tu parles, il parle, nous parlons, vous parlez, ils parlent<br>manger → nous <b>mangeons</b> (g korunur)</div>
-<h3>Sık kullanılan düzensiz fiiller</h3>${ztb(hd,rows)}<br>${ztb(['','prendre','venir','pouvoir','vouloir','se réveiller'],rows2)}
-<h3>Dönüşlü fiiller</h3><p>me, te, se, nous, vous, se + fiil: <b>je me réveille, tu te lèves, nous nous dépêchons</b></p>
-<h3>Olumsuz</h3><p>ne + fiil + pas: <b>Je ne mange pas de viande.</b> · <b>Je ne me réveille pas tôt.</b></p>
-<h3>Zaman ifadeleri</h3><p>chaque jour · tous les soirs · le matin · le week-end · souvent · toujours · parfois · rarement · jamais</p>
-<h3>Dikkat: sık hata</h3><p>✗ nous faisez → ✓ <b>nous faisons</b><br>✗ vous faisons → ✓ <b>vous faites</b></p>`+zmquiz('p')}
-function vZFut(){
-const rows=SJ.map((j,i)=>[sj(i,VA[i]),sj(i,VA[i])+' manger',SJ[i]+' '+rf(i,'lever').replace(/^/,'')]);
-return `<h3>Gelecek zaman (futur proche) ne zaman kullanılır?</h3><p>Yakın gelecekte yapılacak planlar için: <b>Demain, je vais visiter Paris.</b> (Yarın Paris’i ziyaret edeceğim.)</p>
-<h3>Yapısı</h3><div class="fb"><b>aller (geniş zaman) + fiilin mastarı (-er, -ir, -re)</b><br>je vais manger · tu vas partir · il va prendre</div>
-${ztb(['özne','aller','örnek'],SJ.map((j,i)=>[j,VA[i],sj(i,VA[i])+' manger']))}
-<h3>Dönüşlü fiiller</h3><p>Zamir özneye uyar, fiil mastar kalır: <b>je vais me lever · tu vas te coucher · nous allons nous dépêcher</b></p>
-<h3>Olumsuz</h3><p>ne + aller + pas + mastar: <b>Je ne vais pas manger.</b> · <b>Nous n’allons pas nous dépêcher.</b></p>
-<h3>Zaman ifadeleri</h3><p>demain · ce soir · ce week-end · la semaine prochaine · dimanche prochain · l’été prochain · bientôt</p>
-<h3>Dikkat: sık hata</h3><p>✗ je vais allé → ✓ <b>je vais aller</b><br>✗ je vais mange → ✓ <b>je vais manger</b> (mastar)</p>
-<h3>Ek bilgi: futur simple (şimdilik zorunlu değil)</h3><div class="fb">Mastar + ai, as, a, ons, ez, ont: je mangerai, tu partiras, il prendra, nous irons (aller düzensiz), je serai, j’aurai, je ferai.<br>A2 sınavında futur proche yeterlidir.</div>`+zmquiz('f')}
-function ysay(t){say(fm(VB.find(x=>x.inf==YBv),t,YBs,0).replace(/\(e\)/g,''))}
-function ybc(){const v=VB.find(x=>x.inf==YBv),i=YBs;
-return `<p class="mut">Aynı cümleyi üç zamanda yan yana gör. Önce tabloya bak, sonra kapatıp sesli söylemeyi dene.</p>
-<label for="yv">Fiil</label><select id="yv" onchange="YBv=this.value;go()">${VB.map(x=>`<option value="${esc(x.inf)}" ${x.inf==YBv?'selected':''}>${esc(x.inf)} · ${esc(x.tr)}</option>`).join('')}</select>
-<label for="ys">Özne</label><select id="ys" onchange="YBs=+this.value;go()">${SJ.map((j,k)=>`<option value="${k}" ${k==i?'selected':''}>${j}</option>`).join('')}</select>
-${ztb(['Her gün (présent)','Dün (passé composé)','Yarın (futur proche)'],[['p','c','f'].map(t=>fm(v,t,i,0))])}
-<div class="row"><button onclick="ysay('p')">Dinle: geniş</button><button onclick="ysay('c')">Dinle: geçmiş</button><button onclick="ysay('f')">Dinle: gelecek</button></div>
-<h3>Hazır cümleler</h3>`+ztb(['Her gün','Dün','Yarın'],[
-['Je mange une pomme.','J’ai mangé une pomme.','Je vais manger une pomme.'],
-['Je vais à l’école.','Je suis allée à l’école.','Je vais aller à l’école.'],
-['Je joue au football.','J’ai joué au football.','Je vais jouer au football.'],
-['Nous prenons le train.','Nous avons pris le train.','Nous allons prendre le train.'],
-['Tu regardes un film.','Tu as regardé un film.','Tu vas regarder un film.'],
-['Elle se couche à dix heures.','Elle s’est couchée à dix heures.','Elle va se coucher à dix heures.'],
-['Nous visitons le musée.','Nous avons visité le musée.','Nous allons visiter le musée.'],
-['Ils font du sport.','Ils ont fait du sport.','Ils vont faire du sport.']])+
-`<h3>Kendini dene</h3>`+ybq()}
-function ybnew(){const v=VB[rn(VB.length)],i=rn(6),t='pcf'[rn(3)];YBQ={v,i,t,q:yq(v.inf,t,i)};YBa=null;go()}
-function ybchk(){const u=$('#yb').value;YBa=u;YBok=tcheck(YBQ.q,u);YBn++;if(YBok)YBsc++;go()}
-function ybq(){if(!YBQ)return `<button class="p" onclick="ybnew()">Soru getir</button>`;
-const c={p:'Her gün',c:'Dün',f:'Yarın'}[YBQ.t],d=YBa!=null;
-return `<p class="mut">Skor: ${YBsc}/${YBn}</p><div class="fc st"><div class="big" style="font-size:1.25rem">${c} · ${SJ[YBQ.i]} · ${esc(YBQ.v.inf)} (${esc(YBQ.v.tr)})</div></div><p class="mut">Özneyle birlikte yaz. Örnek: je suis allé(e)</p><input id="yb" ${d?'disabled value="'+esc(YBa)+'"':''} autocomplete="off" autocapitalize="none" onkeydown="if(event.key=='Enter'&&!YBa)ybchk()">`+(d?`<div class="fb">${YBok?'Doğru.':'Yanlış.'} Doğrusu: <b>${esc(YBQ.q.a)}</b></div><button class="p" onclick="ybnew()">Sonraki</button>`:`<button class="p" onclick="ybchk()">Kontrol et</button>`)}
-function vZam(){return `<div class="row">${ZMEN.map(x=>`<button class="${ZM==x[0]?'p':''}" onclick="ZM='${x[0]}';go()">${x[1]}</button>`).join('')}</div>`+(ZM=='g'?vZPast():ZM=='p'?vZPres():ZM=='f'?vZFut():ybc())}
-
 go();
 (async()=>{try{const u=await claude.use('user');if(u&&u.isOwner()){ADMIN=true;go()}}catch(e){}})();
 </script></body></html>
